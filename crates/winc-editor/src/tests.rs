@@ -391,3 +391,65 @@ fn a_large_file_chosen_as_utf8_still_rereads() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// 打开时记录的写法：按字面消去 `.` 和 `..`，不解开符号链接。
+#[cfg(unix)]
+#[test]
+fn given_paths_keep_links_and_drop_dots() {
+    let path = Path::new("/a/./b/../c/");
+    assert_eq!(given_path(path), PathBuf::from("/a/c"));
+}
+
+/// 经链接打开的目录：其下的真实路径换回链接的写法；链接指向上级目录时，旁边的目录也换，
+/// 链接只指向目录本身时不换。
+#[cfg(unix)]
+#[test]
+fn real_paths_are_respelled_under_the_link() {
+    let base = canonical_path(&crate::test_util::scratch("respell"));
+    let real = base.join("data/proj");
+    std::fs::create_dir_all(&real).unwrap();
+    std::fs::create_dir_all(base.join("data/proj.worktrees/feat")).unwrap();
+    std::fs::create_dir_all(base.join("work")).unwrap();
+    // `alias` 指向上级目录 `data`；`work/proj` 只指向 `data/proj`。
+    std::os::unix::fs::symlink(base.join("data"), base.join("alias")).unwrap();
+    std::os::unix::fs::symlink(&real, base.join("work/proj")).unwrap();
+    let sibling = base.join("data/proj.worktrees/feat");
+
+    let via_parent = base.join("alias/proj");
+    assert_eq!(
+        respell(&real.join("src"), &via_parent, &real),
+        Some(via_parent.join("src"))
+    );
+    assert_eq!(
+        respell(&sibling, &via_parent, &real),
+        Some(base.join("alias/proj.worktrees/feat"))
+    );
+    let via_self = base.join("work/proj");
+    assert_eq!(respell(&real, &via_self, &real), Some(via_self.clone()));
+    assert_eq!(respell(&sibling, &via_self, &real), None);
+
+    assert!(same_folder(&via_self, &real));
+    assert!(!same_folder(&via_self, &sibling));
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// 经链接打开的目录中，文档路径按链接的写法记录，由哪个写法打开都是同一个标签。
+#[cfg(unix)]
+#[test]
+fn documents_in_a_linked_folder_use_the_link() {
+    let base = canonical_path(&crate::test_util::scratch("linked-docs"));
+    let real = base.join("real");
+    std::fs::create_dir_all(&real).unwrap();
+    std::fs::write(real.join("a.txt"), "a").unwrap();
+    let link = base.join("link");
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+
+    let mut editor = Editor::default();
+    editor.open_folder(&link).unwrap();
+    assert_eq!(editor.root(), Some(link.as_path()));
+    let first = editor.open_tab(&real.join("a.txt"));
+    let second = editor.open_tab(&link.join("a.txt"));
+    assert_eq!(first, second);
+    assert_eq!(editor.documents[first].path, Some(link.join("a.txt")));
+    let _ = std::fs::remove_dir_all(&base);
+}

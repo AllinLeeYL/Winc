@@ -189,7 +189,7 @@ impl App {
     /// 从窗口外打开了文件 `path`（命令行、文件管理器、程序坞、拖入、「打开」面板）：记入最近
     /// 打开的文件；目录不记。
     pub(in crate::app) fn note_opened_file(&mut self, path: &Path) {
-        let path = winc_config::files::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let path = self.editor.document_path(path);
         if self.is_folder(&path) || !self.may_be_file(&path) {
             return;
         }
@@ -944,7 +944,7 @@ impl App {
         // 另存为到已在其他标签中打开的文件时，两个标签对应同一个文件，但内容各自独立，
         // 先保存哪一个都会覆盖另一个的内容。因此对方有未保存的修改时不保存；对方没有修改时
         // 关闭对方的标签，内容以本次保存的为准。
-        let to = to.map(|path| winc_editor::canonical_path(&path));
+        let to = to.map(|path| self.editor.document_path(&path));
         let other = to.as_ref().and_then(|path| {
             self.editor
                 .documents

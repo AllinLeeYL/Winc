@@ -441,10 +441,13 @@ impl Editor {
                     !doc.reads_as_text() && !doc.reads_as_hex() && doc.reads_with().is_none();
                 if plain {
                     let (id, encoding) = (doc.id, None);
+                    // 后台读时按规范化的路径记下；经符号链接打开的目录中，标签用链接下的写法。
+                    let links = self.workspace.as_ref().map(crate::Workspace::links);
+                    let path = links.and_then(|links| links.logical(&canonical));
                     // 已经读过的标签保留原样，读到的内容不用。
                     self.finish_load(LoadedFile {
                         id,
-                        path: canonical,
+                        path: path.unwrap_or(canonical),
                         opened,
                         encoding,
                     });
