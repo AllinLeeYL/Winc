@@ -471,17 +471,13 @@ impl App {
         }
     }
 
-    /// 改用第 `at` 栏：焦点放进它正在看的标签。
+    /// 改用第 `at` 栏：焦点放进它正在看的标签；当前栏保持原有焦点。
     pub(in crate::app) fn focus_terminal_group(&mut self, at: usize) {
-        if at >= self.terminal.group_count() {
+        if at >= self.terminal.group_count() || at == self.terminal.group_at {
             return;
         }
         if let Some(document) = self.terminal.editor_at(at) {
             self.focus_editor_terminal_document(document);
-            return;
-        }
-        if at == self.terminal.group_at {
-            self.focus = Focus::Terminal;
             return;
         }
         self.finish_terminal_rename(true);

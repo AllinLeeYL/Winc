@@ -121,7 +121,7 @@ fn bands_fold_and_unfold_a_command_output() {
 
 #[test]
 fn the_menu_on_a_command_copies_it_and_its_output() {
-    use crate::app::input::context_menu::{MenuCommand, MenuEntry, MenuTarget};
+    use crate::app::input::context_menu::{MenuCommand, MenuEntry};
 
     let dir = sample_folder("terminal-block-menu");
     let mut app = app_with(&dir.join("short.rs"), false);
