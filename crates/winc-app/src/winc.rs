@@ -985,6 +985,7 @@ impl Winc {
         app.git.commit.set_sort(sort);
         app.restore_panel_width();
         app.editor.diff_unified = app.config.diff_inline == Some(true);
+        (app.editor).set_align_columns(app.config.align_columns != Some(false));
         app.editor.diff_collapse = app.config.diff_collapse_unchanged != Some(false);
         app.apply_preview_state();
         app.store.state_path = template.state_path;
