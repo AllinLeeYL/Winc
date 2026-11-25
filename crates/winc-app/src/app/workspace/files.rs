@@ -146,6 +146,8 @@ pub struct TabGhost {
     pub icon: String,
     /// 是日志标签（画 Git 的图标）。
     pub log: bool,
+    /// 是终端标签（画终端图标）。
+    pub terminal: bool,
     /// 关掉时是当前标签（凸起的底色跟着淡出）。
     pub active: bool,
     /// 内容淡出的时钟。
@@ -585,6 +587,8 @@ impl App {
         if index >= self.editor.documents.len() {
             return;
         }
+        self.finish_terminal_rename(true);
+        self.leave_editor_terminal();
         let index = self.editor.bring(index);
 
         if self.editor.active != Some(index) {
@@ -594,6 +598,7 @@ impl App {
         self.load_active_in_background();
         self.make_room_for_editor();
         self.focus = Focus::Editor;
+        self.activate_editor_terminal();
         self.note_recent_file();
         self.relayout();
         self.reveal_active();

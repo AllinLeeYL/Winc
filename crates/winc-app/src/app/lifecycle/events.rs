@@ -372,7 +372,7 @@ impl ApplicationHandler<UserEvent> for App {
                     modifiers.lalt_state() == pressed,
                     modifiers.ralt_state() == pressed,
                 );
-                if self.terminal.open {
+                if self.terminal.open || self.terminal_in_editor() {
                     self.update_terminal_link();
                 }
                 self.update_text_link();

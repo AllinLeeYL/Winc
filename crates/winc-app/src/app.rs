@@ -646,6 +646,8 @@ impl Hover {
                     terminal::HeaderHit::Position
                         | terminal::HeaderHit::SearchDialog
                         | terminal::HeaderHit::Maximize
+                        | terminal::HeaderHit::Editor
+                        | terminal::HeaderHit::Panel
                         | terminal::HeaderHit::Split
                         | terminal::HeaderHit::ShellMenu
                         | terminal::HeaderHit::Find(_)
