@@ -331,6 +331,7 @@ cmd-cli-usage =
       winc                  Restore the last opened folder
       winc .                Open the current folder
       winc file:line[:col]  Open a file and go to that line
+      winc new-file         Open a file that doesn’t exist yet; it’s created on save
       winc ssh://host/folder [ssh://host/file:line[:col]]
                             Open a folder on a remote host and files in it (needs the Remote module)
       winc -                Read standard input (e.g. cargo build 2>&1 | winc -)
@@ -349,6 +350,7 @@ cmd-cli-wsl-needs-name = --wsl requires a distribution name
 cmd-cli-wait-needs-openable-file = --wait requires at least one file that can be opened
 cmd-cli-wait-folder = “{ $path }” is a folder; --wait can only open files
 cmd-cli-open-failed = Couldn’t open “{ $path }”: { $error }
+cmd-cli-no-such-folder = The folder doesn’t exist
 cmd-cli-event-loop-failed = Couldn’t create the event loop: { $error }
 
 ## Keyboard Shortcuts page: command scopes and groups

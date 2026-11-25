@@ -165,6 +165,7 @@ editor-download-skipped-link-loop = symbolic link loop
 editor-open-binary = This file is binary and can’t be opened
 editor-open-too-large = The file is too large ({ $size } MB); the limit is { $limit } GB
 editor-unreadable-not-found = The file doesn’t exist
+editor-new-file = New file, written to disk when saved
 editor-unreadable-permission = No permission to read the file
 editor-unreadable-failed = Reading failed ({ $error })
 editor-unsupported-image = Image

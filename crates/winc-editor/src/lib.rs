@@ -197,6 +197,27 @@ impl Editor {
         index
     }
 
+    /// 同 [`Self::open_tab`]，供命令行给出的文件使用：文件不存在时读取后成为对应该路径的新文件
+    /// （[`Document::is_new_file`]），保存时才写入磁盘。
+    ///
+    /// 已有的标签尚未读取时同样按新文件读取；是此前读取失败的占位标签时改回尚未读取，重新读取。
+    /// 路径中间的一段不是目录时建不出该文件，仍是说明原因的占位标签。
+    pub fn open_tab_or_new(&mut self, path: &Path) -> usize {
+        let index = self.open_tab(path);
+        let unreadable = matches!(
+            self.documents[index].unsupported,
+            Some(Unsupported::Unreadable(_))
+        );
+        if unreadable {
+            self.reopen(index, false);
+        }
+        let doc = &mut self.documents[index];
+        if doc.is_pending() {
+            doc.read_as_new();
+        }
+        index
+    }
+
     /// 为 `path` 创建一个尚未读取的标签（[`Document::pending`]），不切换过去，返回标签序号。
     ///
     /// 用于恢复会话：切换到该标签时再读取文件。与已打开文档相同时返回已有标签，比较方法同
@@ -235,13 +256,15 @@ impl Editor {
             as_text: doc.reads_as_text(),
             hex: doc.reads_as_hex(),
             encoding: doc.reads_with(),
+            new: doc.reads_as_new(),
             progress: ReadProgress::default(),
         })
     }
 
     /// 用后台读取的文件 `loaded` 替换对应标签的内容，返回该标签的序号；无法替换时返回 `None`。
     ///
-    /// 读取失败的文件替换为说明原因的占位标签。文档标识不变，`revision` 在原有值上继续递增，
+    /// 读取失败的文件替换为说明原因的占位标签；文件不存在、标签由命令行给出时换成新文件（见
+    /// [`Self::open_tab_or_new`]）。文档标识不变，`revision` 在原有值上继续递增，
     /// 按（标识、版本号）缓存的结果随之作废。读取期间标签已关闭、已经读取（经 [`Editor::load`]
     /// 就地读取）或路径已改变时不做改动，返回 `None`。
     pub fn finish_load(&mut self, loaded: LoadedFile) -> Option<usize> {
@@ -250,7 +273,12 @@ impl Editor {
         if !doc.is_pending() || doc.path.as_deref() != Some(loaded.path.as_path()) {
             return None;
         }
-        let mut fresh = Document::from_opened(loaded.id, loaded.path, loaded.opened);
+        // 读取发出之后才由命令行给出的标签（见 `open_tab_or_new`）同样按新文件换入。
+        let new = (loaded.new || doc.reads_as_new()) && loaded.opened.creatable();
+        let mut fresh = match new {
+            true => Document::new_file(loaded.id, loaded.path, loaded.opened),
+            false => Document::from_opened(loaded.id, loaded.path, loaded.opened),
+        };
         fresh.keep_chosen(loaded.encoding);
         // 可预览的文件按该类文件最近一次选择的方式显示。
         let kind = fresh.preview_kind();
@@ -777,6 +805,8 @@ pub struct LoadJob {
     hex: bool,
     /// 用户选的编码；有时按它解码。
     encoding: Option<Encoding>,
+    /// 文件不存在时是否成为新文件（见 [`Editor::open_tab_or_new`]）。
+    new: bool,
     progress: ReadProgress,
 }
 
@@ -806,6 +836,7 @@ impl LoadJob {
             id: self.id,
             path: self.path,
             encoding: self.encoding,
+            new: self.new,
         }
     }
 }
@@ -816,12 +847,19 @@ pub struct LoadedFile {
     path: PathBuf,
     opened: Opened,
     encoding: Option<Encoding>,
+    /// 文件不存在时是否成为新文件（见 [`Editor::open_tab_or_new`]）。
+    new: bool,
 }
 
 impl LoadedFile {
     /// 读到的文件已不存在时返回它的路径：调用方据此清理别处记着的这个文件。
     pub fn missing(&self) -> Option<&Path> {
         self.opened.missing().then_some(self.path.as_path())
+    }
+
+    /// 文件不存在、换入后成为新文件（见 [`Editor::open_tab_or_new`]）。
+    pub fn new_file(&self) -> bool {
+        self.new && self.opened.creatable()
     }
 }
 

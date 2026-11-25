@@ -453,3 +453,70 @@ fn documents_in_a_linked_folder_use_the_link() {
     assert_eq!(editor.documents[first].path, Some(link.join("a.txt")));
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// 命令行给出的不存在的文件打开为新文件：空白、可以编辑、按文件名识别语言、沿用
+/// `.editorconfig` 的换行风格，磁盘上没有文件；保存时连同不存在的目录一起建出。
+#[test]
+fn missing_files_from_the_command_line_open_as_new_files() {
+    let base = crate::test_util::scratch("new-file");
+    std::fs::write(base.join(".editorconfig"), "[*]\nend_of_line = crlf\n").unwrap();
+    let path = canonical_path(&base).join("sub/new.rs");
+
+    let mut editor = Editor::default();
+    let index = editor.open_tab_or_new(&path);
+    assert!(editor.load(index));
+    let doc = &mut editor.documents[index];
+    assert!(doc.is_new_file() && doc.unsupported.is_none() && !doc.readonly);
+    assert!(!doc.is_dirty() && doc.text().rope().is_some_and(|r| r.len_chars() == 0));
+    assert_eq!(doc.highlighter.language().id, "rust");
+    assert_eq!(doc.line_ending, winc_core::text::LineEnding::CrLf);
+    assert!(!doc.deleted_on_disk() && !path.exists());
+
+    doc.execute(Command::Insert("fn main() {}".into()), 10, 4);
+    doc.save().unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "fn main() {}");
+    assert!(!editor.documents[index].is_new_file());
+
+    // 其他入口打开不存在的文件仍是说明原因的占位标签。
+    let other = editor.open(&base.join("other.txt"));
+    assert!(editor.documents[other].unsupported.is_some());
+    // 命令行再给出同一个文件时改为新文件。
+    let again = editor.open_tab_or_new(&base.join("other.txt"));
+    assert_eq!(again, other);
+    assert!(editor.load(again) && editor.documents[again].is_new_file());
+
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// 路径中间的一段是文件时建不出新文件：命令行给出的路径仍是说明原因的占位标签。
+#[cfg(unix)]
+#[test]
+fn a_path_under_a_file_does_not_open_as_a_new_file() {
+    let base = crate::test_util::scratch("new-file-under-file");
+    std::fs::write(base.join("a.txt"), "x").unwrap();
+    let path = canonical_path(&base).join("a.txt/b.txt");
+
+    let mut editor = Editor::default();
+    let index = editor.open_tab_or_new(&path);
+    assert!(editor.load(index));
+    let doc = &editor.documents[index];
+    assert!(doc.unsupported.is_some() && !doc.is_new_file());
+
+    let _ = std::fs::remove_dir_all(&base);
+}
+
+/// 读取已经发出之后命令行才给出同一个文件：读好后同样换成新文件。
+#[test]
+fn a_load_in_flight_still_opens_a_new_file() {
+    let base = crate::test_util::scratch("new-file-in-flight");
+    let path = canonical_path(&base).join("late.txt");
+
+    let mut editor = Editor::default();
+    let index = editor.open_tab(&path);
+    let job = editor.begin_load(index).unwrap();
+    assert_eq!(editor.open_tab_or_new(&path), index);
+    assert_eq!(editor.finish_load(job.run()), Some(index));
+    assert!(editor.documents[index].is_new_file());
+
+    let _ = std::fs::remove_dir_all(&base);
+}

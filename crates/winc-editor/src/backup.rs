@@ -450,6 +450,7 @@ impl Editor {
                         path: path.unwrap_or(canonical),
                         opened,
                         encoding,
+                        new: false,
                     });
                 }
                 // 读好之后文件换了位置（规范化的路径变了）时标签仍未读取：就地读。
