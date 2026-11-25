@@ -54,6 +54,16 @@ const IDS: &[(Action, &[&str], &[&str])] = &[
         &["ReformatCode"],
         &["editor.action.formatSelection"],
     ),
+    (
+        CompareWithClipboard,
+        &["CompareClipboardWithSelection"],
+        &["workbench.files.action.compareWithClipboard"],
+    ),
+    (
+        CompareWithSaved,
+        &[],
+        &["workbench.files.action.compareWithSaved"],
+    ),
     (Fix, &["ShowIntentionActions"], &["editor.action.quickFix"]),
     (Find, &["Find"], &["actions.find"]),
     (

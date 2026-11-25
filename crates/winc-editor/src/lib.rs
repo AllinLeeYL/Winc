@@ -27,7 +27,7 @@ mod test_util;
 pub use document::content::Content;
 pub use document::disk::{
     DiskRead, DiskSync, DiskTake, DiskTaken, EncodingRead, EncodingReread, HandedSave, Opened,
-    Reread, SaveJob, Saved,
+    Reread, SaveJob, Saved, saved_text,
 };
 pub use document::encoding::Encoding;
 pub use document::large::LargeText;
