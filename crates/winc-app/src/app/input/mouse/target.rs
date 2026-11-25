@@ -422,9 +422,9 @@ impl App {
         if l.search.contains(x, y) {
             return Target::Search;
         }
-        // 展开的全名可以画在分隔条上，分隔条仍然可以拖动；鼠标停在分隔条上时全名保持展开。
+        // 写全名的那一行画在分隔条之上，在这一行的高度内按下作用于这一行；其他高度拖动分隔条。
         let over_row = self.over_tree_overflow_row(y);
-        if self.panels.sidebar.visible && l.splitter.contains(x, y) {
+        if self.on_sidebar_splitter(x, y) {
             return Target::Splitter;
         }
         if let Some(tool) = hit(&self.hits.tree_tools, x, y) {

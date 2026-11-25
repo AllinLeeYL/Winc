@@ -167,6 +167,9 @@ pub(crate) struct GitState {
     /// `summaries` 每改一次加 1（后台读到新状态、切换仓库时放进、取出）：按它缓存由这些状态
     /// 排出来的东西（见 `App::commit_other_rows`）。
     summaries_version: Arc<std::sync::atomic::AtomicU64>,
+    /// 上次按其他仓库的状态更新差异标签时 `summaries_version` 的值（见
+    /// [`App::refresh_other_diffs`]）。
+    diffs_seen: u64,
     /// 各仓库最近一次读取的工作树；位置选择器据此在仓库下列出工作树。
     summary_worktrees: Arc<Mutex<HashMap<PathBuf, Vec<Worktree>>>>,
     /// 离开各仓库时记下的分支、储藏、工作树和上一次提交，切换回去时先显示。
@@ -297,6 +300,7 @@ impl Default for GitState {
             followed: None,
             summaries: Arc::default(),
             summaries_version: Arc::default(),
+            diffs_seen: 0,
             summary_worktrees: Arc::default(),
             kept: HashMap::new(),
             places: std::cell::RefCell::new(None),
@@ -1056,6 +1060,7 @@ impl App {
             self.settle_commit_focus();
             self.request_redraw();
         }
+        self.refresh_other_diffs();
     }
 
     /// 检查仓库配置是否会让 `git` 运行命令（[`Git::untrusted`]），必要时询问用户是否信任。
