@@ -27,6 +27,9 @@ pub struct ProductParts {
     pub version: Rect,
 }
 
+/// 关于页运行信息按钮的默认宽度：只容纳短文案「复制」，避免压过版本信息。
+pub const SYSTEM_INFO_BUTTON_W: f32 = 64.0;
+
 impl ProductParts {
     /// 根据产品信息一行 `row` 计算各部分的位置（见 [`SETTINGS_PRODUCT_H`]）。
     pub fn new(row: Rect) -> ProductParts {
@@ -47,6 +50,50 @@ impl ProductParts {
         let w = (text_w + 20.0).min(self.version.w);
         let x = self.version.x + (self.version.w - w) / 2.0;
         Rect::new(x, self.version.y, w, self.version.h)
+    }
+
+    /// 返回版本号和运行信息按钮作为整体水平居中时，版本号的区域。
+    pub fn version_area_with_system_info(&self, text_w: f32, button_w: f32) -> Rect {
+        self.info_areas(text_w, button_w).0
+    }
+
+    /// 返回运行信息按钮的区域；与版本号同一条水平基线，空间不足时移到版本号下方。
+    pub fn system_info_area(&self, text_w: f32, button_w: f32) -> Rect {
+        self.info_areas(text_w, button_w).1
+    }
+
+    /// 计算版本号与运行信息按钮的整体区域：两者在同一行时整体水平居中。
+    fn info_areas(&self, text_w: f32, button_w: f32) -> (Rect, Rect) {
+        let version_w = (text_w + 20.0).min(self.version.w);
+        let button_w = button_w.min(self.version.w);
+        let gap = 6.0;
+        let total = version_w + gap + button_w;
+        if total <= self.version.w {
+            let x = self.version.x + (self.version.w - total) / 2.0;
+            return (
+                Rect::new(x, self.version.y, version_w, self.version.h),
+                Rect::new(x + version_w + gap, self.version.y, button_w, self.version.h),
+            );
+        }
+        (
+            self.version_area(text_w),
+            Rect::new(
+                self.version.x + (self.version.w - button_w) / 2.0,
+                self.version.bottom() + 4.0,
+                button_w,
+                self.version.h,
+            ),
+        )
+    }
+
+    /// 产品卡片需要为按钮另起一行时增加的高度。
+    pub fn system_info_extra_height(&self, text_w: f32, button_w: f32) -> f32 {
+        let area = self.system_info_area(text_w, button_w);
+        // 基础高度已经包含版本号下方的 16 像素留白；额外高度只需覆盖按钮底部相对版本号底部
+        // 增加的空间，这样换行后按钮下方仍保留同样的留白。
+        (area.y > self.version.y)
+            .then_some((area.bottom() - self.version.bottom()).max(0.0))
+            .unwrap_or(0.0)
     }
 }
 

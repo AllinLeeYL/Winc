@@ -318,14 +318,14 @@ fn draw_row(app: &mut App, frame: &mut Frame<'_>, row: &SettingRow, clip: Rect) 
         && matches!(app.focus, Focus::Settings | Focus::Setting);
     let action = row.setting.control() == SettingControl::Action;
     let hovered = app.settings.hover == Some(SettingsPart::Action(row.setting));
-    if action && (hovered || selected) {
+    if row.setting != Setting::CopySystemInfo && action && (hovered || selected) {
         let color = if selected {
             p.selected_inactive
         } else {
             p.hover
         };
         frame.rect_clipped(row.row, color, RADIUS_ROW, clip);
-    } else if selected {
+    } else if selected && row.setting != Setting::CopySystemInfo {
         // 内缩 4 逻辑像素，使圆角在组的底色上清晰可见。
         frame.rect_clipped(
             row.row.inset(4.0, 4.0),
@@ -333,6 +333,10 @@ fn draw_row(app: &mut App, frame: &mut Frame<'_>, row: &SettingRow, clip: Rect) 
             RADIUS_ROW,
             clip,
         );
+    }
+    if row.setting == Setting::CopySystemInfo {
+        draw_system_info_button(app, frame, row, clip);
+        return None;
     }
     if action {
         let icon = (row.row.x + 14.0, icon_center_y(app, row.row, app.fonts.ui));
@@ -571,12 +575,45 @@ fn draw_product(app: &mut App, frame: &mut Frame<'_>, row: &SettingRow, clip: Re
 
     let text = crate::layout::version_line();
     let w = frame.measure(FontKind::Ui, app.fonts.ui, &text);
-    let area = parts.version_area(w);
+    let area = parts.version_area_with_system_info(w, crate::layout::SYSTEM_INFO_BUTTON_W);
     if app.settings.hover == Some(SettingsPart::Copy(row.setting)) {
         frame.rect_clipped(area, p.hover, RADIUS_ROW, clip);
     }
+    let text = ellipsize(frame, &text, app.fonts.ui, (area.w - 20.0).max(0.0));
+    let w = frame.measure(FontKind::Ui, app.fonts.ui, &text);
     let x = (area.x + (area.w - w) / 2.0).round();
     ui_text(frame, app, x, area, &text, p.text_muted, clip);
+}
+
+/// 绘制版本号旁的运行信息复制按钮。
+fn draw_system_info_button(app: &mut App, frame: &mut Frame<'_>, row: &SettingRow, clip: Rect) {
+    let parts = ProductParts::new(row.row);
+    let version_w = frame.measure(FontKind::Ui, app.fonts.ui, &crate::layout::version_line());
+    let area = parts.system_info_area(version_w, crate::layout::SYSTEM_INFO_BUTTON_W);
+    if area.w <= 0.0 {
+        return;
+    }
+    let hovered = app.settings.hover == Some(SettingsPart::Copy(Setting::CopySystemInfo));
+    let focused = app.settings.keyboard
+        && app.settings.selected == Setting::CopySystemInfo
+        && matches!(app.focus, Focus::Settings | Focus::Setting);
+    let label = match app.settings.system_info_feedback {
+        None => t!("settings-copy-system-info"),
+        Some(true) => t!("settings-system-info-copied"),
+        Some(false) => t!("settings-system-info-copy-failed"),
+    };
+    let label = ellipsize(frame, label, app.fonts.ui, (area.w - 12.0).max(0.0));
+    frame.within(clip, |frame| {
+        draw_action_button(
+            app,
+            frame,
+            area,
+            &label,
+            ButtonRole::Normal,
+            true,
+            hovered || focused,
+        );
+    });
 }
 
 /// 找到新版本 `version` 时的说明：不由应用自己更新的安装写明从哪里取得。

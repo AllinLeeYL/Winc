@@ -146,6 +146,8 @@ pub enum Setting {
     SystemProxy,
     /// 「关于」页的版本号，只读。
     Version,
+    /// 「关于」页复制运行信息按钮。
+    CopySystemInfo,
     /// 「关于」页的更新状态和「检查更新」按钮。
     Updates,
     /// 「关于」页的「更新日志」：在阅读标签中打开，列出各版的更改。
@@ -352,9 +354,10 @@ impl Setting {
             S::GitRememberCredentials => SettingsPage::Git,
             S::ExplorerMenu | S::FileAssociations => SettingsPage::General,
             S::GitModule | S::TerminalModule | S::RemoteModule => SettingsPage::Modules,
-            S::Version | S::Updates | S::ReleaseNotes | S::Website | S::Repository => {
+            S::Version | S::CopySystemInfo | S::Updates | S::ReleaseNotes | S::Website => {
                 SettingsPage::About
             }
+            S::Repository => SettingsPage::About,
             S::Community | S::License => SettingsPage::About,
             S::Keymap | S::KeyMatches | S::KeySearch => SettingsPage::Keys,
         }
@@ -452,7 +455,9 @@ impl Setting {
             S::TerminalModule => "terminal.enabled",
             S::RemoteModule => "remote.enabled",
             S::GitTree | S::FormatCommand(_) | S::FixCommand(_) | S::AddLanguage => return None,
-            S::AddFixLanguage | S::Version | S::Updates | S::ReleaseNotes => return None,
+            S::AddFixLanguage | S::Version | S::CopySystemInfo | S::Updates | S::ReleaseNotes => {
+                return None;
+            }
             S::Website | S::Repository | S::Community | S::License | S::KeySearch => return None,
             S::Keymap | S::KeyMatches => return None,
             S::ExplorerMenu | S::FileAssociations => return None,
@@ -520,6 +525,7 @@ impl Setting {
             Setting::MarkdownSelectionToolbar => t!("settings-markdown-selection-toolbar"),
             Setting::CheckUpdates => t!("settings-check-updates"),
             Setting::Version => t!("settings-version"),
+            Setting::CopySystemInfo => t!("settings-copy-system-info"),
             Setting::Website => t!("settings-website"),
             Setting::Repository => "GitHub",
             Setting::Community => "Telegram",
@@ -763,7 +769,7 @@ impl Setting {
             | Setting::Keymap => SettingControl::Choice,
             Setting::AddLanguage | Setting::AddFixLanguage => SettingControl::Action,
             Setting::KeySearch => SettingControl::Search,
-            Setting::Version => SettingControl::Product,
+            Setting::Version | Setting::CopySystemInfo => SettingControl::Product,
             Setting::ReleaseNotes
             | Setting::Website
             | Setting::Repository
@@ -844,7 +850,7 @@ pub enum SettingsPart {
     Action(Setting),
     /// 某种语言名称下方的「安装方法…」，参数是所在的设置行。
     Install(Setting),
-    /// 点击后复制到剪贴板的值（版本号）。
+    /// 点击后复制到剪贴板的值（版本号或运行信息）。
     Copy(Setting),
     /// 点击后在浏览器中打开的链接。
     Link(Setting),
@@ -938,9 +944,17 @@ pub fn search_sections(query: &str, languages: &ToolLanguages, modules: Modules)
         } else {
             let items = page.sections(languages).into_iter().flat_map(|section| {
                 let whole = whole || section.title.is_some_and(named);
+                let product = section.items.iter().any(|s| {
+                    matches!(s, Setting::Version | Setting::CopySystemInfo)
+                        && (whole || s.matches(query))
+                });
                 (section.items.into_iter())
                     .filter(|s| s.control() != SettingControl::Action)
-                    .filter(move |s| whole || s.matches(query))
+                    .filter(move |s| {
+                        whole
+                            || product && matches!(s, Setting::Version | Setting::CopySystemInfo)
+                            || s.matches(query)
+                    })
             });
             items.collect()
         };
@@ -1076,7 +1090,7 @@ impl SettingsLayout {
         let mut groups = Vec::new();
         let mut headings = Vec::new();
         let mut separators = Vec::new();
-        let mut rows = Vec::new();
+        let mut rows: Vec<SettingRow> = Vec::new();
 
         let sections = if searching {
             let modules = Modules {
@@ -1106,6 +1120,37 @@ impl SettingsLayout {
             let described = in_group.iter().all(|s| s.description().is_some());
             let top = y;
             for (n, setting) in in_group.into_iter().enumerate() {
+                // 运行信息按钮与版本号共用产品信息行，但仍作为独立键盘项目列出。
+                if setting == Setting::CopySystemInfo {
+                    if let Some((row, control)) = rows
+                        .iter()
+                        .find(|row| row.setting == Setting::Version)
+                        .map(|product| (product.row, product.control))
+                    {
+                        rows.push(SettingRow {
+                            setting,
+                            row,
+                            control,
+                        });
+                    } else {
+                        // 搜索只命中按钮文字时，补出产品信息行，保证按钮仍可见且可用。
+                        let place = (Rect::new(x, y, group_w, 0.0), false, described);
+                        let h = row_height(Setting::Version, place, measure);
+                        let row = Rect::new(x, y, group_w, h);
+                        rows.push(SettingRow {
+                            setting: Setting::Version,
+                            row,
+                            control: row,
+                        });
+                        rows.push(SettingRow {
+                            setting,
+                            row,
+                            control: row,
+                        });
+                        y += h;
+                    }
+                    continue;
+                }
                 if n > 0 {
                     let inner = group_w - SETTINGS_INSET * 2.0;
                     separators.push(Rect::new(x + SETTINGS_INSET, y, inner.max(0.0), 1.0));
@@ -1256,7 +1301,15 @@ fn row_height(
         {
             SETTINGS_ROW_TALL
         }
-        SettingControl::Product => SETTINGS_PRODUCT_H,
+        SettingControl::Product => {
+            let parts = crate::layout::ProductParts::new(row);
+            let version_w = measure(&crate::layout::version_line());
+            SETTINGS_PRODUCT_H
+                + parts.system_info_extra_height(
+                    version_w,
+                    crate::layout::SYSTEM_INFO_BUTTON_W,
+                )
+        }
         _ => match setting.description().filter(|_| described) {
             Some(text) => {
                 let room = description_room(row, control_rect(setting, row, editing));

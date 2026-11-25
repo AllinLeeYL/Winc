@@ -79,6 +79,8 @@ pub struct SettingsState {
     pub recording: bool,
     /// 搜索框中的内容是否为录制的按键（按键搜索，而不是按名称搜索）。
     pub keys_recorded: bool,
+    /// 关于页复制运行信息后的反馈状态：`true` 表示成功。
+    pub system_info_feedback: Option<bool>,
     /// 「快捷键」页中正在修改的一行。
     pub(crate) key_edit: Option<shortcuts::KeyEdit>,
     /// 「快捷键」页中一行展开、收起的过渡：同时收起的另一行和时钟；展开的是 `key_edit` 的一行。
@@ -210,6 +212,7 @@ impl App {
         self.settings.scroll = 0.0;
         self.settings.selected = Setting::default();
         self.settings.logo_played = false;
+        self.settings.system_info_feedback = None;
         self.settings.search.set_text("");
         self.settings.before_search = None;
         self.settings.error = self.broken_font(self.settings.selected.page());
@@ -299,6 +302,22 @@ impl App {
         if let Some(&(setting, _)) = reset {
             return Some(SettingsPart::Reset(setting));
         }
+        if layout.body.contains(x, y)
+            && let Some(row) = layout.row(Setting::Version)
+        {
+            let parts = crate::layout::ProductParts::new(row.row);
+            let measure = |text: &str| {
+                (self.frame.renderer.as_ref())
+                    .map_or(0.0, |r| r.measure(FontKind::Ui, self.fonts.ui, text))
+            };
+            let version_w = measure(&crate::layout::version_line());
+            if parts
+                .system_info_area(version_w, crate::layout::SYSTEM_INFO_BUTTON_W)
+                .contains(x, y)
+            {
+                return Some(SettingsPart::Copy(Setting::CopySystemInfo));
+            }
+        }
         match layout.part_at(x, y)? {
             // 版本号和链接只有文字那一块可点，与悬停底色一致。
             part @ (SettingsPart::Copy(setting) | SettingsPart::Link(setting)) => {
@@ -318,14 +337,23 @@ impl App {
         layout: &SettingsLayout,
         setting: Setting,
     ) -> Option<Rect> {
-        let row = layout.row(setting)?;
+        let row = layout.row(setting).or_else(|| {
+            (setting == Setting::CopySystemInfo)
+                .then(|| layout.row(Setting::Version))
+                .flatten()
+        })?;
         let measure = |text: &str| {
             (self.frame.renderer.as_ref())
                 .map_or(0.0, |r| r.measure(FontKind::Ui, self.fonts.ui, text))
         };
         Some(if setting == Setting::Version {
             let text_w = measure(&crate::layout::version_line());
-            crate::layout::ProductParts::new(row.row).version_area(text_w)
+            crate::layout::ProductParts::new(row.row)
+                .version_area_with_system_info(text_w, crate::layout::SYSTEM_INFO_BUTTON_W)
+        } else if setting == Setting::CopySystemInfo {
+            let text_w = measure(&crate::layout::version_line());
+            crate::layout::ProductParts::new(row.row)
+                .system_info_area(text_w, crate::layout::SYSTEM_INFO_BUTTON_W)
         } else {
             let text = crate::layout::about_value(setting).unwrap_or_default();
             let content = measure(&text) + crate::layout::LINK_ICON_W;
@@ -747,9 +775,23 @@ impl App {
         )
     }
 
-    /// 将值 `setting`（版本号）复制到剪贴板，并在状态栏提示。
+    /// 复制版本号或运行信息；运行信息的成功与失败还会显示在按钮上。
     pub(in crate::app) fn settings_copy_value(&mut self, setting: Setting) {
         self.settings.selected = setting;
+        if setting == Setting::CopySystemInfo {
+            let report = crate::system::info::report();
+            let copied = self.clipboard.set_text(report, false);
+            if copied {
+                self.forget_remote_copy();
+            }
+            self.settings.system_info_feedback = Some(copied);
+            self.flash(if copied {
+                t!("settings-system-info-copied")
+            } else {
+                t!("settings-system-info-clipboard-unavailable")
+            });
+            return;
+        }
         let version = crate::layout::version_label();
         self.set_clipboard(version.clone(), false);
         self.flash(t!("settings-version-copied", version = version));
