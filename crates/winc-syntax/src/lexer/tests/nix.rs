@@ -1,4 +1,4 @@
-//! Nix 与 HCL 字符串的词法测试：缩进字符串的转义、`$$`、跨行的双引号字符串、跨行的插值和带 `'` 的名字。
+//! Nix 与 HCL 字符串的词法测试：缩进字符串的转义、`$$`、跨行的字符串和插值、带 `'` 的名字。
 
 use super::*;
 
@@ -91,8 +91,8 @@ fn lex_lines(file: &str, lines: &[&str]) -> Vec<(Vec<(String, TokenKind)>, LineS
         .collect()
 }
 
-/// 回归：双引号字符串里跨行的 `${…}` 曾退回字符串扫描，插值里的缩进被当成字符串、其中的
-/// 字符串被当成代码。
+/// 回归：双引号字符串里跨行的 `${…}` 曾退回字符串扫描：插值里的缩进被当成字符串，
+/// 插值里的字符串被当成代码。
 #[test]
 fn nix_interpolation_spans_lines_in_double_quoted_string() {
     let lines = lex_lines(

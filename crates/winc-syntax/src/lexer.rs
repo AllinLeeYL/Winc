@@ -190,7 +190,7 @@ fn compact(state: LineState) -> u8 {
         }
         LineState::LongString(level) if level < 0x40 => 0x80 | level,
         LineState::LongComment(level) if level < 0x40 => 0xC0 | level,
-        // 放不下插值的嵌套，退回最外层的字符串：之后的行按字符串着色到它收尾。
+        // 放不下插值的嵌套，退回最外层的字符串：之后的行按字符串着色，直到该字符串收尾。
         LineState::Interpolation { outer, .. } => outer[0] >> 3,
         _ => 0,
     }
@@ -798,7 +798,7 @@ impl Lexer<'_> {
             LineState::Interpolation { top, outer } => {
                 self.outer = outer;
                 let mut i = self.resume(expand(top))?;
-                // 从内到外：先扫完插值里剩下的代码，再接着扫被它打断的字符串。
+                // 从内到外：先扫完插值里剩下的代码，再接着扫被插值打断的字符串。
                 while let Some(frame) = self.outer.iter().rposition(|&f| f != 0) {
                     let code = self.outer[frame];
                     let Some((closer, span)) = expand(code >> 3)

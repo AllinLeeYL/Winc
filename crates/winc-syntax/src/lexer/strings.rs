@@ -254,7 +254,10 @@ impl Lexer<'_> {
         {
             // 没有闭合时 token 留给下一行接着扫，不需要试扫。
             self.push(start, from, TokenKind::String);
-            self.outer[frame] = compact(carry) << 3 | 1;
+            // 字符串状态的紧凑编码只占高 5 位：可以跨行插值的字符串，编码都小于 32。
+            let code = compact(carry);
+            debug_assert!(code < 32, "{carry:?}");
+            self.outer[frame] = code << 3 | 1;
             let end = self.interpolation_body(from, closer, Some(frame), 0);
             if end.is_some() {
                 self.outer[frame] = 0;
@@ -632,9 +635,8 @@ impl Lexer<'_> {
 
 /// 返回从 `chars[j]` 的转义字符起算的转义序列长度（字符）。
 ///
-/// `\x41` 取 2 位十六进制数，`\u0041` 取 4 位，`\u{1F600}` 到 `}` 为止（花括号里不是十六进制数时
-/// 只取 `\u`），`\U0001F600` 取 8 位，
-/// `\101` 取至多 3 位八进制数，其余取转义字符和紧随的一个字符。
+/// `\x41` 取 2 位十六进制数，`\u0041` 取 4 位，`\U0001F600` 取 8 位，`\101` 取至多 3 位八进制数；
+/// `\u{1F600}` 到 `}` 为止，花括号里不是十六进制数时只取 `\u`；其余取转义字符和紧随的一个字符。
 fn escape_len(chars: &[char], j: usize) -> usize {
     let hex =
         |from: usize, max: usize| scan(chars, from, |c| c.is_ascii_hexdigit()).min(from + max) - j;
