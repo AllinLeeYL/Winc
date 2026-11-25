@@ -42,7 +42,7 @@ editor-large-no-multi-cursor = 文件过大，不支持多光标查找
 
 editor-word-wrap-on-large = 文件过大，无法自动换行
 editor-word-wrap-on-pending = 已开启自动换行（大文件模式）
-editor-word-wrap-on-table = 按列对齐的表格不支持自动换行
+editor-word-wrap-on-table = 按列对齐的表格不支持自动换行，关闭「CSV、TSV 按列对齐」后可换行
 editor-word-wrap-on = 已开启自动换行
 editor-word-wrap-off = 已关闭自动换行
 editor-fold-large = 文件过大，无法折叠
