@@ -513,6 +513,7 @@ impl App {
                 MenuCommand::Download => self.pick(Pick::Download(self.tree_targets())),
                 MenuCommand::CopyPath => self.copy_paths(&selection, false),
                 MenuCommand::CopyRelativePath => self.copy_paths(&selection, true),
+                MenuCommand::CopyAsPrompt => self.copy_as_prompt(self.tree_selected_files()),
                 _ => {}
             }
             return;
@@ -538,6 +539,7 @@ impl App {
             MenuCommand::FindInFolder => self.find_in_folder(&target),
             MenuCommand::CopyPath => self.copy_path(&target, false),
             MenuCommand::CopyRelativePath => self.copy_path(&target, true),
+            MenuCommand::CopyAsPrompt if path.is_some() => self.copy_as_prompt(vec![target]),
             MenuCommand::Rename => self.start_rename(&target),
             MenuCommand::Delete => self.ask_delete(&target),
             MenuCommand::Cut => self.cut_entries(std::slice::from_ref(&target)),

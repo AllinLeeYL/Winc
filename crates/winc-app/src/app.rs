@@ -44,9 +44,9 @@ pub(crate) use editor::sticky::{place_sticky_rows, sticky_limit};
 pub(crate) use git::branch::picker::{GitAnchor, PickerPart};
 pub(crate) use git::changes::{ChangeTarget, MARK_W, mark_x, ruler_rows};
 pub(crate) use git::commit::{
-    COMMIT_ROW, CommitGroup, CommitLabels, CommitName, CommitOverflow, CommitParts, CommitRow,
-    CommitRows, CommitScope, CommitSort, CommitTarget, DRAWER_TOP, MESSAGE_LINE, MESSAGE_PAD,
-    OtherGroup, OtherRow, StashLine, StashView, SyncState, WorktreeLine,
+    ActionStrip, COMMIT_ROW, CommitGroup, CommitLabels, CommitName, CommitOverflow, CommitParts,
+    CommitRow, CommitRows, CommitScope, CommitSort, CommitTarget, DRAWER_TOP, MESSAGE_LINE,
+    MESSAGE_PAD, OtherGroup, OtherRow, StashLine, StashView, SyncState, WorktreeLine,
 };
 pub(crate) use input::context_menu::{
     CHECK_COLUMN, ICON_COLUMN, MenuIcon, POPUP_PAD, POPUP_TEXT_X, PopupLevel, PopupMenu, PopupRow,
@@ -250,6 +250,8 @@ pub enum UserEvent {
     ),
     /// 拖进文件树的文件和目录已在后台复制完成：各个副本的路径、复制失败的说明，以及这次复制。
     Copied(Vec<PathBuf>, Vec<String>, Arc<winc_editor::Copying>),
+    /// 文件树中选中的文件已在后台整理成提示词，待写入剪贴板。
+    PromptCopied(winc_editor::Prompt),
     /// 窗口已关闭时点击了程序坞中的图标（macOS）：重新显示窗口。
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Reopen,
@@ -722,6 +724,14 @@ impl Hover {
                         | CommitTarget::StageFile(..)
                         | CommitTarget::GroupStage(_)
                         | CommitTarget::DirStage(..)
+                        | CommitTarget::DirRevert(_)
+                        | CommitTarget::OtherOpen(..)
+                        | CommitTarget::OtherRevert(..)
+                        | CommitTarget::OtherStage(..)
+                        | CommitTarget::OtherGroupStage(..)
+                        | CommitTarget::OtherGroupRevert(..)
+                        | CommitTarget::OtherDirRevert(_)
+                        | CommitTarget::OtherDirStage(..)
                 )
                 | Hover::Diff(
                     DiffTarget::Combined

@@ -11,6 +11,7 @@ use super::*;
 
 pub(super) mod background_save;
 pub(super) mod compare;
+mod copy_prompt;
 pub(super) mod copying;
 pub(super) mod file_drop;
 pub(super) mod file_work;
