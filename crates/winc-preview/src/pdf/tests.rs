@@ -110,3 +110,19 @@ fn broken_files_report_why() {
     assert!(!is_pdf(Path::new("报告.pdfx")));
     assert!(supported());
 }
+
+#[test]
+fn files_read_into_memory_open_like_files_on_disk() {
+    // 远端的 PDF 读进内存后打开（`platform::Document::from_bytes`），结果与按路径打开相同。
+    let bytes = sample_pdf(&[(612, 792, 0), (612, 792, 90)]);
+    let (inner, pages) = platform::Document::from_bytes(bytes).unwrap();
+    assert_eq!(pages.len(), 2);
+    assert_eq!((pages[1].width, pages[1].height), (792.0, 612.0));
+    let doc = Document { inner, pages };
+    let pixels = doc.render(0, 100, 100).unwrap();
+    assert_eq!((pixels.width, pixels.height), (100, 100));
+    assert_eq!(
+        platform::Document::from_bytes(b"not a pdf".to_vec()).err(),
+        Some(winc_i18n::t!("preview-pdf-invalid").to_owned())
+    );
+}

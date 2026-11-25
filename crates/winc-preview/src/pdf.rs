@@ -38,6 +38,12 @@ pub struct PageSize {
 /// 远达不到该上限。
 pub const MAX_SIDE: u32 = 16384;
 
+/// 远端 PDF 文件大小的上限（字节，512 MiB），超过时不读取。
+///
+/// 远端的文件不能交给系统的渲染器按路径打开，要先整个读进内存。
+#[cfg(any(target_os = "macos", windows))]
+const REMOTE_MAX: u64 = 512 << 20;
+
 /// 当前平台能否预览 PDF：macOS 与 Windows 能，其他平台不能。
 pub fn supported() -> bool {
     cfg!(any(target_os = "macos", windows))
@@ -63,11 +69,17 @@ impl Document {
     ///
     /// # Errors
     ///
-    /// 当前平台不支持、文件无法读取、不是有效的 PDF、加密或没有页时返回给用户看的原因。
+    /// 当前平台不支持、文件无法读取、不是有效的 PDF、加密、没有页，或远端文件过大时返回给用户看
+    /// 的原因。
     pub fn open(path: &Path) -> Result<Document, String> {
         #[cfg(any(target_os = "macos", windows))]
         {
-            let (inner, pages) = platform::Document::open(path)?;
+            // 远端主机上的文件是虚拟路径，系统的渲染器读不到：经由连接读出全部内容后从内存打开。
+            let (inner, pages) = if winc_backend::is_remote(path) {
+                platform::Document::from_bytes(read_remote(path)?)?
+            } else {
+                platform::Document::open(path)?
+            };
             if pages.is_empty() {
                 return Err(winc_i18n::t!("preview-pdf-empty").to_owned());
             }
@@ -115,6 +127,19 @@ impl Document {
             Err(winc_i18n::t!("preview-pdf-unsupported").to_owned())
         }
     }
+}
+
+/// 经由连接读出远端文件 `path` 的全部内容。
+#[cfg(any(target_os = "macos", windows))]
+fn read_remote(path: &Path) -> Result<Vec<u8>, String> {
+    let metadata = winc_backend::fs::metadata(path).map_err(|e| e.to_string())?;
+    if !metadata.is_file() {
+        return Err(winc_i18n::t!("preview-pdf-invalid").to_owned());
+    }
+    if metadata.len > REMOTE_MAX {
+        return Err(winc_i18n::t!("preview-pdf-too-large").to_owned());
+    }
+    winc_backend::fs::read(path).map_err(|e| e.to_string())
 }
 
 #[cfg(all(test, target_os = "macos"))]

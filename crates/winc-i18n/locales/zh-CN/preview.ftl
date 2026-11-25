@@ -118,6 +118,7 @@ preview-pdf-zoom = PDF 缩放 { $zoom }%
 preview-pdf-page = 第 { $page } / { $total } 页
 preview-picture-zoom = 图片缩放 { $zoom }%
 preview-pdf-encrypted = 不支持预览加密的 PDF
+preview-pdf-too-large = 文件过大
 preview-pdf-empty = PDF 中无页面
 preview-pdf-render-failed = 无法渲染此页
 preview-pdf-render-failed-code = 无法渲染此页（错误代码 { $code }）

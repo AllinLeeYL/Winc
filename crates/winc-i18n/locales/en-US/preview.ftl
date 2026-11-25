@@ -118,6 +118,7 @@ preview-pdf-zoom = PDF zoom { $zoom }%
 preview-pdf-page = Page { $page } of { $total }
 preview-picture-zoom = Image zoom { $zoom }%
 preview-pdf-encrypted = Encrypted PDFs can’t be previewed
+preview-pdf-too-large = The file is too large
 preview-pdf-empty = The PDF has no pages
 preview-pdf-render-failed = The page couldn’t be rendered
 preview-pdf-render-failed-code = The page couldn’t be rendered (error { $code })
