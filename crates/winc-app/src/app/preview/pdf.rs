@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex, mpsc};
 
 use winc_editor::{DocumentId, Unsupported};
 use winc_preview::image::Pixels;
-use winc_preview::pdf::{Document, OutlineItem, PageSize};
+use winc_preview::pdf::{Document, OutlineItem, PageSize, Source};
 use winc_render::{Rect, Renderer};
 use winit::keyboard::{Key, NamedKey};
 
@@ -401,25 +401,38 @@ impl App {
                 let _ = proxy.send_event(UserEvent::ImageReady);
             }
         };
-        // 目录直接读文件，与系统的渲染器无关：另开一个线程，不耽误第一页的渲染。
-        let (outline_path, outline_sender, outline_notify) =
-            (path.clone(), pdf.sender.clone(), notify.clone());
-        let _ = std::thread::Builder::new()
-            .name("winc-pdf-outline".to_owned())
-            .spawn(move || {
-                let items = winc_preview::pdf::read_outline(&outline_path);
-                if outline_sender
-                    .send(Done::Outline(generation, items))
-                    .is_ok()
-                {
-                    outline_notify();
-                }
-            });
+        let outline_sender = pdf.sender.clone();
         // 系统的 PDF 对象只能在打开它的线程上使用：文档在线程里打开，请求通道关闭时线程结束。
         let spawned = std::thread::Builder::new()
             .name("winc-pdf".to_owned())
             .spawn(move || {
-                let document = match Document::open(&path) {
+                // 远端的文件在这里整个读进内存，目录与渲染共用这一份内容。
+                let source = match Source::new(&path) {
+                    Ok(source) => source,
+                    Err(reason) => {
+                        let _ = sender.send(Done::Opened(generation, Err(reason)));
+                        let _ = outline_sender.send(Done::Outline(generation, Vec::new()));
+                        notify();
+                        return;
+                    }
+                };
+                // 目录直接读文件内容，与系统的渲染器无关：另开一个线程，不耽误第一页的渲染。
+                let (outline_source, outline_notify) = (source.clone(), notify.clone());
+                let _ = std::thread::Builder::new()
+                    .name("winc-pdf-outline".to_owned())
+                    .spawn(move || {
+                        let items = outline_source.outline();
+                        if outline_sender
+                            .send(Done::Outline(generation, items))
+                            .is_ok()
+                        {
+                            outline_notify();
+                        }
+                    });
+                let document = Document::from_source(&source);
+                // 系统的渲染器已复制了内容：不再持有读进内存的文件。
+                drop(source);
+                let document = match document {
                     Ok(document) => document,
                     Err(reason) => {
                         let _ = sender.send(Done::Opened(generation, Err(reason)));

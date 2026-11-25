@@ -6,7 +6,8 @@
 //! 这几页的位图。系统的 PDF 对象不能跨线程使用：[`Document`] 只能在打开它的线程上使用，调用方
 //! 通常为每个打开的 PDF 启动一个渲染线程。其他平台不支持，[`supported`] 返回 `false`。
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::image::Pixels;
 
@@ -38,11 +39,10 @@ pub struct PageSize {
 /// 远达不到该上限。
 pub const MAX_SIDE: u32 = 16384;
 
-/// 远端 PDF 文件大小的上限（字节，512 MiB），超过时不读取。
+/// 远端 PDF 文件大小的上限（字节，256 MiB），超过时不读取。
 ///
 /// 远端的文件不能交给系统的渲染器按路径打开，要先整个读进内存。
-#[cfg(any(target_os = "macos", windows))]
-const REMOTE_MAX: u64 = 512 << 20;
+const REMOTE_MAX: u64 = 256 << 20;
 
 /// 当前平台能否预览 PDF：macOS 与 Windows 能，其他平台不能。
 pub fn supported() -> bool {
@@ -54,6 +54,41 @@ pub fn is_pdf(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
         .is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+}
+
+/// 要打开的 PDF 文件。
+///
+/// 本机的文件按路径交给系统的渲染器；远端的文件先经由连接整个读进内存，目录（[`Source::outline`]）
+/// 与渲染（[`Document::from_source`]）共用这一份内容，不重复下载。可跨线程共享。
+#[derive(Debug, Clone)]
+pub enum Source {
+    /// 本机的文件。
+    File(PathBuf),
+    /// 远端文件的全部内容。
+    Bytes(Arc<Vec<u8>>),
+}
+
+impl Source {
+    /// 准备打开 `path`：远端的文件在这里读出全部内容。
+    ///
+    /// # Errors
+    ///
+    /// 远端文件无法读取、不是普通文件或超过 256 MiB 时返回给用户看的原因。
+    pub fn new(path: &Path) -> Result<Source, String> {
+        if winc_backend::is_remote(path) {
+            read_remote(path).map(|bytes| Source::Bytes(Arc::new(bytes)))
+        } else {
+            Ok(Source::File(path.to_owned()))
+        }
+    }
+
+    /// 读出目录，按出现的顺序排列；读不出来时为空。
+    pub fn outline(&self) -> Vec<OutlineItem> {
+        match self {
+            Source::File(path) => read_outline(path),
+            Source::Bytes(bytes) => outline(bytes),
+        }
+    }
 }
 
 /// 打开的 PDF 文档；只能在打开它的线程上使用。
@@ -72,13 +107,21 @@ impl Document {
     /// 当前平台不支持、文件无法读取、不是有效的 PDF、加密、没有页，或远端文件过大时返回给用户看
     /// 的原因。
     pub fn open(path: &Path) -> Result<Document, String> {
+        Document::from_source(&Source::new(path)?)
+    }
+
+    /// 打开 `source`，读出页数和各页大小。
+    ///
+    /// # Errors
+    ///
+    /// 当前平台不支持、文件无法读取、不是有效的 PDF、加密或没有页时返回给用户看的原因。
+    pub fn from_source(source: &Source) -> Result<Document, String> {
         #[cfg(any(target_os = "macos", windows))]
         {
-            // 远端主机上的文件是虚拟路径，系统的渲染器读不到：经由连接读出全部内容后从内存打开。
-            let (inner, pages) = if winc_backend::is_remote(path) {
-                platform::Document::from_bytes(read_remote(path)?)?
-            } else {
-                platform::Document::open(path)?
+            // 远端主机上的文件是虚拟路径，系统的渲染器读不到：从读进内存的内容打开。
+            let (inner, pages) = match source {
+                Source::File(path) => platform::Document::open(path)?,
+                Source::Bytes(bytes) => platform::Document::from_bytes(bytes)?,
             };
             if pages.is_empty() {
                 return Err(winc_i18n::t!("preview-pdf-empty").to_owned());
@@ -87,7 +130,7 @@ impl Document {
         }
         #[cfg(not(any(target_os = "macos", windows)))]
         {
-            let _ = path;
+            let _ = source;
             Err(winc_i18n::t!("preview-pdf-unsupported").to_owned())
         }
     }
@@ -130,7 +173,6 @@ impl Document {
 }
 
 /// 经由连接读出远端文件 `path` 的全部内容。
-#[cfg(any(target_os = "macos", windows))]
 fn read_remote(path: &Path) -> Result<Vec<u8>, String> {
     let metadata = winc_backend::fs::metadata(path).map_err(|e| e.to_string())?;
     if !metadata.is_file() {

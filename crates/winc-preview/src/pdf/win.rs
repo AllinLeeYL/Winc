@@ -52,10 +52,10 @@ impl Document {
     }
 
     /// 从内存中的文件内容 `bytes` 打开，返回文档和各页大小。
-    pub(super) fn from_bytes(bytes: Vec<u8>) -> Result<(Document, Vec<PageSize>), String> {
+    pub(super) fn from_bytes(bytes: &[u8]) -> Result<(Document, Vec<PageSize>), String> {
         let stream = InMemoryRandomAccessStream::new().map_err(invalid)?;
         let writer = DataWriter::CreateDataWriter(&stream).map_err(invalid)?;
-        writer.WriteBytes(&bytes).map_err(invalid)?;
+        writer.WriteBytes(bytes).map_err(invalid)?;
         writer
             .StoreAsync()
             .and_then(|op| op.join())

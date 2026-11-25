@@ -48,9 +48,9 @@ impl Document {
     }
 
     /// 从内存中的文件内容 `bytes` 打开，返回文档和各页大小。
-    pub(super) fn from_bytes(bytes: Vec<u8>) -> Result<(Document, Vec<PageSize>), String> {
+    pub(super) fn from_bytes(bytes: &[u8]) -> Result<(Document, Vec<PageSize>), String> {
         let invalid = || t!("preview-pdf-invalid").to_owned();
-        let data = CFData::from_bytes(&bytes);
+        let data = CFData::from_bytes(bytes);
         let provider = CGDataProvider::with_cf_data(Some(&data)).ok_or_else(invalid)?;
         let doc = CGPDFDocument::with_provider(Some(&provider)).ok_or_else(invalid)?;
         Document::load(doc)
