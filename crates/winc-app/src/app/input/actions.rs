@@ -537,6 +537,7 @@ impl App {
             GitClone => self.open_clone_dialog(),
             GitInit => self.git_init(),
             GitSwitchRepository => self.switch_location(true),
+            GitAddRepository => self.open_add_repository_dialog(),
             GitSwitchWorktree => self.switch_location(false),
             GitNewWorktree => self.open_worktree_dialog(),
             // 这几个命令要在仓库里：不在时说明，不弹空的选择器、不跑注定失败的 `git`。

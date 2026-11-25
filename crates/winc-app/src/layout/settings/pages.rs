@@ -253,7 +253,7 @@ impl SettingsPage {
             SettingsPage::Git => vec![
                 group(
                     t!("settings-group-general"),
-                    vec![S::GitPath, S::GitOpenWorktree],
+                    vec![S::GitPath, S::GitOpenWorktree, S::GitScanDepth],
                 ),
                 group(
                     t!("settings-group-commit"),

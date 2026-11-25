@@ -424,6 +424,7 @@ impl App {
                     self.close_picker();
                     self.prune_worktrees();
                 }
+                MenuCommand::LocationForget => self.remove_repository(&path),
                 MenuCommand::LocationMerge => {
                     let tree = worktree.and_then(|i| self.git.worktrees.get(i));
                     if let Some(name) = tree.and_then(|w| w.branch()).map(str::to_owned) {

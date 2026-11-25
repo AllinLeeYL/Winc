@@ -153,6 +153,7 @@ fn sample() -> State {
                     ],
                     focused: 1,
                 }),
+                repositories: SessionRepositories::default(),
             },
             Session {
                 folder: PathBuf::from("/b"),
@@ -171,6 +172,10 @@ fn sample() -> State {
                 sidebar_hidden: false,
                 window: None,
                 panes: None,
+                repositories: SessionRepositories {
+                    added: vec![PathBuf::from("/a/项目/vendor/lib")],
+                    removed: vec![PathBuf::from("/a/项目/old")],
+                },
             },
         ],
         last: Some(PathBuf::from("/a/项目")),
@@ -670,6 +675,7 @@ fn sessions_are_kept_per_folder() {
         sidebar_hidden: false,
         window: None,
         panes: None,
+        repositories: SessionRepositories::default(),
     });
     assert_eq!(state.sessions.len(), 2);
     assert_eq!(state.sessions[0].folder, PathBuf::from("/b"));

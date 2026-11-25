@@ -521,6 +521,10 @@ impl App {
         let window = self.window_frame_now().or(earlier);
         self.update_state(move |state| {
             places::record(state, &places);
+            // 仓库列表的调整在做出时已写入（`App::change_repository_edits`），可能来自其他窗口：
+            // 沿用状态文件中的记录。
+            let repositories = (state.session_for(&folder)).map(|s| s.repositories.clone());
+            let repositories = repositories.unwrap_or_default();
             state.set_session(Session {
                 folder,
                 tabs,
@@ -538,6 +542,7 @@ impl App {
                 sidebar_hidden,
                 window,
                 panes,
+                repositories,
             });
         });
     }
