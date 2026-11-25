@@ -2,6 +2,7 @@
 
 workspace-open-folder-first = Open a folder first
 workspace-no-open-file = No file is open
+workspace-file-outside-folders = The current file isn’t in the open folders
 workspace-list-separator = { ", " }
 workspace-quoted-name = “{ $name }”
 

@@ -2,6 +2,7 @@
 
 workspace-open-folder-first = 请先打开一个目录
 workspace-no-open-file = 未打开文件
+workspace-file-outside-folders = 当前文件不在打开的目录中
 workspace-list-separator = 、
 workspace-quoted-name = 「{ $name }」
 

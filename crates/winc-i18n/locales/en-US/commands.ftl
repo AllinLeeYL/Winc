@@ -68,6 +68,7 @@ cmd-copy-active-path = Copy Path of Current File
 cmd-copy-key-path = Copy Key Path
 cmd-reveal-active-file-in-finder = Reveal Current File in Finder
 cmd-reveal-active-file-in-folder = Show Current File in Folder
+cmd-reveal-active-file-in-tree = Reveal Current File in File Tree
 cmd-open-in-terminal = Open in External Terminal
 cmd-quit = Quit
 cmd-undo = Undo
