@@ -95,6 +95,8 @@ pub struct Config {
     pub sticky_scroll: Option<bool>,
     /// 自动换行：按编辑区宽度把长行断开显示（不修改文件），默认为否。
     pub word_wrap: Option<bool>,
+    /// CSV、TSV 按列对齐显示（不修改文件），默认为开；关闭时按原文排布，仍按列着色。
+    pub align_columns: Option<bool>,
     /// 超长行显示全部内容，而不是只显示开头的一部分，默认为否。
     pub whole_lines: Option<bool>,
     /// 在编辑区右侧显示缩略图，默认为否。
