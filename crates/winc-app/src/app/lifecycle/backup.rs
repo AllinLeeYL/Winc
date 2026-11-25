@@ -293,9 +293,9 @@ pub(crate) fn restore_tabs(
 
 /// 按上次的现场和读好的 `prepared` 恢复标签，并把备份中未保存的内容放回文档。
 ///
-/// 标签按原来的顺序重新打开，激活当时的标签，文件树展开到该文件所在的层级；现场中没有记录
-/// 的备份（进程中止前来不及记录现场）也会恢复，排在已记录的标签之后。现场中已不存在的文件
-/// 跳过，除非它还有未保存的内容。
+/// 标签按原来的顺序重新打开，激活当时的标签；现场中没有记录的备份（进程中止前来不及记录现场）
+/// 也会恢复，排在已记录的标签之后。现场中已不存在的文件跳过，除非该文件还有未保存的内容。文件树
+/// 是否展开到当前文件由调用方按设置决定（[`App::reveal_restored`]）。
 pub(crate) fn restore_prepared(
     editor: &mut Editor,
     session: Option<&Session>,
@@ -392,10 +392,6 @@ pub(crate) fn restore_prepared(
         .filter(shown)
         .or(editor.active.filter(shown))
         .or(tabs.checked_sub(1));
-    let current = editor.active().and_then(|d| d.path.clone());
-    if let (Some(file), Some(workspace)) = (current, &mut editor.workspace) {
-        workspace.reveal(&file);
-    }
     restored
 }
 

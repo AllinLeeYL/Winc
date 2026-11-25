@@ -305,6 +305,7 @@ impl App {
         if let Some(index) = opened.and_then(|id| self.editor.index_of(id)) {
             self.editor.active = Some(index);
         }
+        self.reveal_restored();
         self.adopt_restored(restored);
         if session
             .as_ref()

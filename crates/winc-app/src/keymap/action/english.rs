@@ -68,6 +68,7 @@ impl Action {
             CopyActivePath => "Copy Path of Active File",
             CopyKeyPath => "Copy Key Path",
             RevealActiveFile => "Reveal Active File",
+            RevealActiveInTree => "Reveal Active File in File Tree",
             OpenInTerminal => "Open in External Terminal",
             Quit => "Quit",
             Undo => "Undo",

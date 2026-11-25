@@ -91,6 +91,7 @@ pub const ACTIONS: &[Action] = {
         CopyActivePath,
         CopyKeyPath,
         RevealActiveFile,
+        RevealActiveInTree,
         OpenInTerminal,
         Quit,
         Undo,
