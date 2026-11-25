@@ -1338,10 +1338,7 @@ fn row_height(
             let parts = crate::layout::ProductParts::new(row);
             let version_w = measure(&crate::layout::version_line());
             SETTINGS_PRODUCT_H
-                + parts.system_info_extra_height(
-                    version_w,
-                    crate::layout::SYSTEM_INFO_BUTTON_W,
-                )
+                + parts.system_info_extra_height(version_w, crate::layout::SYSTEM_INFO_BUTTON_W)
         }
         _ => match setting.description().filter(|_| described) {
             Some(text) => {

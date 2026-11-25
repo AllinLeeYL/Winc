@@ -300,10 +300,18 @@ fn settings_keyboard_walks_every_item_and_adjusts() {
     );
     assert_eq!(app.settings.selected, Setting::License);
     assert_eq!(app.settings_layout().page, SettingsPage::About);
-    // 往回走过关于页的七行（版本、更新、更新日志和四个链接），回到快捷键页的搜索框。
-    for _ in 0..7 {
+    // 往回走过更新和链接，先选中复制运行信息，再经过版本号回到快捷键页。
+    for _ in 0..6 {
         app.settings_move(false);
     }
+    assert_eq!(app.settings.selected, Setting::CopySystemInfo);
+    app.settings_activate();
+    let copied = app.clipboard.copied.as_deref().unwrap();
+    assert!(copied.contains(winc_version::VERSION));
+    assert!(copied.contains(std::env::consts::ARCH));
+    app.settings_move(false);
+    assert_eq!(app.settings.selected, Setting::Version);
+    app.settings_move(false);
     assert_eq!(app.settings.selected, Setting::KeySearch);
     assert_eq!(app.settings_layout().page, SettingsPage::Keys);
     assert_eq!(app.focus, Focus::KeySearch);

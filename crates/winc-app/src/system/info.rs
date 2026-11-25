@@ -102,7 +102,9 @@ fn sysctl_string(name: &str) -> Option<String> {
     if bytes.last() == Some(&0) {
         bytes.pop();
     }
-    String::from_utf8(bytes).ok().filter(|value| !value.is_empty())
+    String::from_utf8(bytes)
+        .ok()
+        .filter(|value| !value.is_empty())
 }
 
 #[cfg(windows)]
@@ -170,9 +172,10 @@ fn linux_distribution() -> Option<String> {
 
 #[cfg(target_os = "linux")]
 fn os_release_value(text: &str, key: &str) -> Option<String> {
-    let value = text
-        .lines()
-        .find_map(|line| line.strip_prefix(key).and_then(|rest| rest.strip_prefix('=')))?;
+    let value = text.lines().find_map(|line| {
+        line.strip_prefix(key)
+            .and_then(|rest| rest.strip_prefix('='))
+    })?;
     let value = value.trim();
     let value = if let Some(value) = value.strip_prefix('"') {
         let value = value.strip_suffix('"')?;

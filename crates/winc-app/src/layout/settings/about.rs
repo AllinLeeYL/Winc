@@ -72,7 +72,12 @@ impl ProductParts {
             let x = self.version.x + (self.version.w - total) / 2.0;
             return (
                 Rect::new(x, self.version.y, version_w, self.version.h),
-                Rect::new(x + version_w + gap, self.version.y, button_w, self.version.h),
+                Rect::new(
+                    x + version_w + gap,
+                    self.version.y,
+                    button_w,
+                    self.version.h,
+                ),
             );
         }
         (
@@ -91,9 +96,11 @@ impl ProductParts {
         let area = self.system_info_area(text_w, button_w);
         // 基础高度已经包含版本号下方的 16 像素留白；额外高度只需覆盖按钮底部相对版本号底部
         // 增加的空间，这样换行后按钮下方仍保留同样的留白。
-        (area.y > self.version.y)
-            .then_some((area.bottom() - self.version.bottom()).max(0.0))
-            .unwrap_or(0.0)
+        if area.y > self.version.y {
+            (area.bottom() - self.version.bottom()).max(0.0)
+        } else {
+            0.0
+        }
     }
 }
 
