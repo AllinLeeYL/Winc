@@ -29,14 +29,14 @@ pub(crate) struct ProjectFolders {
     pub extra: Vec<PathBuf>,
 }
 
-/// 读取项目文件 `file` 中的目录，并尽量规范化路径。
+/// 读取项目文件 `file` 中的目录，路径按打开时记录的写法（见 [`winc_editor::given_path`]）。
 ///
 /// # Errors
 ///
 /// 同 [`read_project`]。
 pub(crate) fn project_folders(file: &Path) -> Result<ProjectFolders, ProjectError> {
-    let canonical = |path: PathBuf| winc_config::files::canonicalize(&path).unwrap_or(path);
-    let mut folders = read_project(file)?.into_iter().map(|f| canonical(f.path));
+    let given = |path: PathBuf| winc_editor::given_path(&path);
+    let mut folders = read_project(file)?.into_iter().map(|f| given(f.path));
     let root = folders.next().ok_or(ProjectError::Invalid)?;
     let mut extra: Vec<PathBuf> = Vec::new();
     for folder in folders {
@@ -46,7 +46,7 @@ pub(crate) fn project_folders(file: &Path) -> Result<ProjectFolders, ProjectErro
     }
     Ok(ProjectFolders {
         native: winc_config::is_project_file(file),
-        file: canonical(file.to_path_buf()),
+        file: given(file.to_path_buf()),
         root,
         extra,
     })
@@ -120,7 +120,7 @@ impl App {
         &mut self,
         path: &Path,
     ) -> Option<(PathBuf, Option<ProjectFolders>)> {
-        let target = winc_config::files::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let target = winc_editor::given_path(path);
         if !is_project(&target) {
             return Some((target, None));
         }
@@ -256,7 +256,6 @@ impl App {
         let folders: Vec<PathBuf> = workspace.folders().map(Path::to_path_buf).collect();
         match write_project(&file, &folders) {
             Ok(_) => {
-                let file = winc_config::files::canonicalize(&file).unwrap_or(file);
                 let name = winc_editor::display_name(&file).into_owned();
                 workspace.set_project(Some(file));
                 self.folders_changed();
