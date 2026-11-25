@@ -257,7 +257,9 @@ impl App {
             Target::MarkdownToc(target) => Hover::MarkdownToc(target),
             Target::MarkdownText(Some(link)) => Hover::MarkdownLinkText(link),
             Target::ImageHandle => Hover::ImageHandle,
-            Target::MarkdownText(None) | Target::PdfThumb(_) | Target::Picture => Hover::None,
+            Target::MarkdownText(None) | Target::PdfThumb(_) | Target::Picture | Target::Table => {
+                Hover::None
+            }
             Target::PdfTool(tool) => Hover::PdfTool(tool),
             Target::LatexStatus => Hover::LatexStatus,
             Target::LatexProblem(line) => Hover::LatexProblem(line),
@@ -635,6 +637,9 @@ impl App {
         }
         if self.picture_at(x, y) {
             return Target::Picture;
+        }
+        if self.active_shows_text() && self.table_at(x, y) {
+            return Target::Table;
         }
         if l.editor.contains(x, y) && self.editor.active.is_some() {
             return Target::Editor;
@@ -1207,6 +1212,8 @@ pub(super) enum Target {
     Editor,
     /// 图片或 SVG 的预览区域。
     Picture,
+    /// 分栏时右侧的表格：点击后键盘作用于表格。只看预览时表格位于编辑区，属于 [`Target::Editor`]。
+    Table,
     /// 终端面板。
     Terminal,
     /// 编辑区与终端面板之间的间距。
