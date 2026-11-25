@@ -389,6 +389,8 @@ impl App {
                 }
             }
             Fix => self.fix_active(),
+            CompareWithClipboard => self.compare_with_clipboard(),
+            CompareWithSaved => self.compare_with_saved(),
 
             // 日志标签里 `⌘F` 是筛选输入框。
             Find if self.log_active() => {

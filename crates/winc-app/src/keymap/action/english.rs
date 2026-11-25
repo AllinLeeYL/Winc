@@ -178,6 +178,8 @@ impl Action {
             Format => "Format Document",
             FormatSelection => "Format Selection",
             Fix => "Fix All Problems",
+            CompareWithClipboard => "Compare with Clipboard",
+            CompareWithSaved => "Compare with Saved Version",
             Find => "Find",
             Replace => "Replace",
             FindNext => "Find Next",

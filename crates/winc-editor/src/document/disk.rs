@@ -375,15 +375,7 @@ impl Document {
             .path
             .as_deref()
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, t!("editor-file-no-path")))?;
-        let too_large = || io::Error::other(t!("editor-large-cannot-compare")).into();
-        // 大文件读入时要先把整个文件扫一遍建索引，无法逐行比较，因此先按大小排除。
-        if winc_backend::fs::metadata(path)?.len > LARGE_FILE {
-            return Err(too_large());
-        }
-        match load_auto(path, false, self.encoding, None)?.text {
-            Content::Rope(rope) => Ok(rope.to_string()),
-            Content::Large(_) => Err(too_large()),
-        }
+        saved_text(path, self.encoding)
     }
 
     /// 解决冲突：换成磁盘上的内容，放弃未保存的修改。
@@ -979,6 +971,24 @@ fn load_chosen(
 /// 仍然读入，编码记为 `Binary`。
 pub(super) fn load(path: &Path, allow_binary: bool) -> Result<Loaded, OpenError> {
     load_auto(path, allow_binary, Encoding::Utf8, None)
+}
+
+/// 读出磁盘上文件 `path` 的内容（按编码 `encoding` 解码，换行统一为 `\n`），用于和编辑器中的
+/// 内容比较。耗时与文件大小成正比，应在后台线程调用。
+///
+/// # Errors
+///
+/// 读取失败、文件变成二进制、超过大小上限，或是按需读取的大文件时返回 [`OpenError`]。
+pub fn saved_text(path: &Path, encoding: Encoding) -> Result<String, OpenError> {
+    let too_large = || io::Error::other(t!("editor-large-cannot-compare")).into();
+    // 大文件读入时要先把整个文件扫一遍建索引，无法逐行比较，因此先按大小排除。
+    if winc_backend::fs::metadata(path)?.len > LARGE_FILE {
+        return Err(too_large());
+    }
+    match load_auto(path, false, encoding, None)?.text {
+        Content::Rope(rope) => Ok(rope.to_string()),
+        Content::Large(_) => Err(too_large()),
+    }
 }
 
 /// 与 [`load_with`] 相同，读好后再按 [`unicode_escapes`] 判断是否改按 Unicode 转义显示。
