@@ -50,7 +50,9 @@ fn the_whole_file_is_compared_with_the_clipboard_and_stays_editable() {
     assert_eq!(doc.title.as_deref(), Some("剪贴板 ↔ main.rs"));
     let view = active_view(&app);
     assert_eq!(view.old.title, "剪贴板");
-    assert_eq!(view.new.title, "src/main.rs");
+    // 本机路径按本机的分隔符显示。
+    let relative = Path::new("src").join("main.rs");
+    assert_eq!(view.new.title, relative.to_string_lossy());
     assert_eq!(view.new.path.as_deref(), Some(file.as_path()));
     assert!(!view.is_identical());
 
