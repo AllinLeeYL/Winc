@@ -210,7 +210,6 @@ menu-commit-all-repositories = 显示全部仓库
 menu-git-show-output = 显示 Git 输出
 menu-commit-expand-all = 全部展开
 menu-commit-collapse-all = 全部折叠
-menu-commit-roll-back = 回滚勾选的文件
 menu-commit-undo = 撤销提交
 menu-commit-and-push = 提交并推送
 menu-commit-and-sync = 提交并同步

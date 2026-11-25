@@ -220,7 +220,6 @@ menu-commit-all-repositories = Show All Repositories
 menu-git-show-output = Show Git Output
 menu-commit-expand-all = Expand All
 menu-commit-collapse-all = Collapse All
-menu-commit-roll-back = Roll Back Checked Files
 menu-commit-undo = Undo Commit
 menu-commit-and-push = Commit and Push
 menu-commit-and-sync = Commit and Sync

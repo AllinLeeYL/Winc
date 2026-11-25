@@ -44,9 +44,9 @@ pub(crate) use editor::sticky::{place_sticky_rows, sticky_limit};
 pub(crate) use git::branch::picker::{GitAnchor, PickerPart};
 pub(crate) use git::changes::{ChangeTarget, MARK_W, mark_x, ruler_rows};
 pub(crate) use git::commit::{
-    COMMIT_ROW, CommitGroup, CommitLabels, CommitName, CommitOverflow, CommitParts, CommitRow,
-    CommitRows, CommitScope, CommitSort, CommitTarget, DRAWER_TOP, MESSAGE_LINE, MESSAGE_PAD,
-    OtherGroup, OtherRow, StashLine, StashView, SyncState, WorktreeLine,
+    ActionStrip, COMMIT_ROW, CommitGroup, CommitLabels, CommitName, CommitOverflow, CommitParts,
+    CommitRow, CommitRows, CommitScope, CommitSort, CommitTarget, DRAWER_TOP, MESSAGE_LINE,
+    MESSAGE_PAD, OtherGroup, OtherRow, StashLine, StashView, SyncState, WorktreeLine,
 };
 pub(crate) use input::context_menu::{
     CHECK_COLUMN, ICON_COLUMN, MenuIcon, POPUP_PAD, POPUP_TEXT_X, PopupLevel, PopupMenu, PopupRow,
@@ -722,6 +722,14 @@ impl Hover {
                         | CommitTarget::StageFile(..)
                         | CommitTarget::GroupStage(_)
                         | CommitTarget::DirStage(..)
+                        | CommitTarget::DirRevert(_)
+                        | CommitTarget::OtherOpen(..)
+                        | CommitTarget::OtherRevert(..)
+                        | CommitTarget::OtherStage(..)
+                        | CommitTarget::OtherGroupStage(..)
+                        | CommitTarget::OtherGroupRevert(..)
+                        | CommitTarget::OtherDirRevert(_)
+                        | CommitTarget::OtherDirStage(..)
                 )
                 | Hover::Diff(
                     DiffTarget::Combined
