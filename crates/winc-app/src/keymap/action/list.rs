@@ -26,6 +26,8 @@ pub const ACTIONS: &[Action] = {
         Format,
         FormatSelection,
         Fix,
+        CompareWithClipboard,
+        CompareWithSaved,
         Find,
         Replace,
         FindNext,
