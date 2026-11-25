@@ -4,6 +4,8 @@
 use super::*;
 
 pub(super) mod folders;
+#[cfg(unix)]
+mod links;
 pub(super) mod loading;
 pub(super) mod outline;
 mod panes;
