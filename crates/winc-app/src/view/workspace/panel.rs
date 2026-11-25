@@ -885,6 +885,23 @@ pub(in crate::view) fn tooltip(app: &App) -> Option<(Rect, String)> {
             let rect = app.terminal_hovered_hit(hit)?;
             Some((rect, label.to_owned()))
         }
+        Hover::TerminalHeader(hit @ crate::app::terminal::HeaderHit::Editor) => {
+            let rect = app.terminal_hovered_hit(hit)?;
+            Some((
+                rect,
+                with_key(
+                    t!("terminal-move-to-editor"),
+                    Some(Action::MoveTerminalToEditor),
+                ),
+            ))
+        }
+        Hover::TerminalHeader(crate::app::terminal::HeaderHit::Panel) => Some((
+            app.layout.terminal_return,
+            with_key(
+                t!("terminal-move-to-panel"),
+                Some(Action::MoveTerminalToPanel),
+            ),
+        )),
         Hover::TerminalHeader(hit @ crate::app::terminal::HeaderHit::Maximize) => {
             let rect = app.terminal_hovered_hit(hit)?;
             let label = if app.terminal.maximized {

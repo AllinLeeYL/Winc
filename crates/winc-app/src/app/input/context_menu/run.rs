@@ -146,9 +146,13 @@ impl App {
                 }
                 _ => {}
             },
-            MenuTarget::Terminal(block) => self.run_terminal_command(command, block),
+            MenuTarget::Terminal(id, block) => {
+                if self.activate_terminal_menu_target(id).is_some() {
+                    self.run_terminal_command(command, block);
+                }
+            }
             MenuTarget::TerminalTab(id) => {
-                let Some(index) = self.terminal.tabs.iter().position(|t| t.id == id) else {
+                let Some(index) = self.activate_terminal_menu_target(id) else {
                     return;
                 };
                 match command {
@@ -161,6 +165,7 @@ impl App {
                         self.activate_terminal_tab(index);
                         self.move_terminal_to_new_group();
                     }
+                    MenuCommand::MoveTerminalToEditor => self.move_terminal_to_editor(),
                     MenuCommand::CloseTerminal => self.close_terminal_tab(index),
                     MenuCommand::CloseOtherTerminals => self.close_other_terminal_tabs(id),
                     _ => {}
@@ -546,6 +551,25 @@ impl App {
         }
     }
 
+    /// 菜单目标编号优先于当前焦点，包括其他栏和拆分出的终端。
+    pub(super) fn activate_terminal_menu_target(&mut self, id: u16) -> Option<usize> {
+        let group = self.terminal.group_of(id)?;
+        self.focus_terminal_group(group);
+        let index = self
+            .terminal
+            .tabs
+            .iter()
+            .position(|tab| tab.panes().any(|pane| pane.id == id))?;
+        let tab = &self.terminal.tabs[index];
+        let offset = tab.panes().position(|pane| pane.id == id)?;
+        let pane = match offset {
+            0 => tab.pane_at(),
+            n => n - 1 + usize::from(n > tab.pane_at()),
+        };
+        self.select_terminal_pane(index, pane);
+        Some(index)
+    }
+
     fn run_terminal_command(&mut self, command: MenuCommand, block: Option<u32>) {
         match (command, block) {
             (MenuCommand::CopyCommand, Some(id)) => return self.copy_terminal_command(id),
@@ -566,6 +590,8 @@ impl App {
             MenuCommand::MoveTerminalRight | MenuCommand::MoveTerminalDown => {
                 self.move_terminal_to_new_group();
             }
+            MenuCommand::MoveTerminalToEditor => self.move_terminal_to_editor(),
+            MenuCommand::MoveTerminalToPanel => self.move_terminal_to_panel(),
             MenuCommand::CloseTerminal => self.close_terminal_pane(),
             _ => {}
         }
@@ -602,6 +628,22 @@ impl App {
     }
 
     fn run_tab_command(&mut self, command: MenuCommand, id: DocumentId) {
+        if self.editor.document(id).is_some_and(|doc| doc.terminal) {
+            match command {
+                MenuCommand::MoveTerminalToPanel => {
+                    self.move_editor_terminal_to_panel(id);
+                    return;
+                }
+                MenuCommand::RenameTerminal => {
+                    self.focus_editor_terminal_document(id);
+                    if self.activate_editor_terminal() {
+                        self.open_terminal_rename(self.terminal.active);
+                    }
+                    return;
+                }
+                _ => {}
+            }
+        }
         let Some(index) = self
             .editor
             .index_of(id)
