@@ -33,8 +33,8 @@ menu-copied-as-prompt-skipped =
         [one] Copied as prompt; skipped 1 file
        *[other] Copied as prompt; skipped { $count } files
     }
-menu-copy-as-prompt-empty = No readable UTF-8 text files within the prompt size limit
-menu-copy-as-prompt-too-many = Select at most { $limit } files to copy as a prompt
+menu-copy-as-prompt-empty = None of the selected files can be copied as a prompt: they aren’t text files or exceed the size limit
+menu-copy-as-prompt-too-many = Up to { $limit } files can be copied at once; select fewer files
 menu-copied-reference = Copied { $reference }
 menu-copy-reference-unsaved = The file hasn’t been saved and has no path
 

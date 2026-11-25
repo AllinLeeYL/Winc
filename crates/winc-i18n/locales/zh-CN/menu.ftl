@@ -29,8 +29,8 @@ menu-copied-relative-path = 已复制相对路径
 menu-copy-as-prompt = 复制为提示词
 menu-copied-as-prompt = 已复制为提示词
 menu-copied-as-prompt-skipped = 已复制为提示词，跳过 { $count } 个文件
-menu-copy-as-prompt-empty = 没有可读取且符合大小限制的 UTF-8 文本文件
-menu-copy-as-prompt-too-many = 最多选择 { $limit } 个文件复制为提示词
+menu-copy-as-prompt-empty = 所选文件无法复制为提示词：均非文本文件或超过大小上限
+menu-copy-as-prompt-too-many = 一次最多复制 { $limit } 个文件，请减少所选文件
 menu-copied-reference = 已复制 { $reference }
 menu-copy-reference-unsaved = 文件尚未保存，无路径可复制
 

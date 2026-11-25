@@ -116,6 +116,11 @@ fn tree_menu_copies_selected_files_as_prompt() {
     right_click(&mut app, binary_at);
     app.run_menu_command(MenuCommand::CopyAsPrompt);
     assert_eq!(app.clipboard.copied, copied);
+    assert_eq!(
+        app.notice.kind,
+        NoticeKind::Warning,
+        "没有可复制的文件时说明原因"
+    );
     right_click(&mut app, folder_at);
     assert!(
         !menu_commands(&app)
@@ -137,6 +142,17 @@ fn tree_menu_copies_selected_files_as_prompt() {
             "File: a.txt\n```txt\n你好\n```\n\n",
             "File: short.rs\n```rs\nfn main() {}\n```\n\n",
         ))
+    );
+
+    // 有未保存修改的文件复制编辑器中的内容。
+    let short = app.editor.workspace.as_ref().unwrap().root.join("short.rs");
+    app.open_path(&short);
+    app.select(0, 0);
+    app.run(Command::Insert("// edited\n".into()));
+    app.copy_as_prompt(vec![short]);
+    assert_eq!(
+        app.clipboard.copied.as_deref(),
+        Some("File: short.rs\n```rs\n// edited\nfn main() {}\n```\n\n")
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
