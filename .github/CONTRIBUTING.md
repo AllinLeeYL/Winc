@@ -24,10 +24,13 @@ it is edited to follow one.
 | --- | --- |
 | `area: …` | The part of winc concerned, from the Area field |
 | `platform: …`, `arch: …` | The system and processor, from the Platform field |
-| `status: needs triage` | Not yet reviewed by a maintainer |
+| `status: needs template` | Not written with a form; cleared once it is edited to follow one |
 | `status: needs info` | Waiting for the author; closed after 14 days without a reply and reopened when the author replies |
-| `status: confirmed` | Reproduced or accepted, ready to be worked on |
-| `priority: high`, `priority: low` | Set by maintainers when an issue is more or less urgent than usual |
+| `duplicate`, `wontfix` | Closed as a duplicate, or as not planned |
+
+Maintainers track progress and priority in the project, and can mark an issue with a comment that
+starts with `/needs-info` (followed by what is missing), `/duplicate #123` or `/wontfix`; the last
+two also close it.
 
 The labels are defined in [labels.json](labels.json).
 

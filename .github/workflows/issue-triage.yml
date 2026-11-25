@@ -5,11 +5,12 @@
 # - Labels: "area:", "platform:" and "arch:" labels follow the form's answers, as listed in
 #   .github/labels.json. Area labels are only added, so a maintainer's own choice is kept; platform
 #   and architecture labels follow the form when its author changes the answer.
-# - Status: a new issue is marked "status: needs triage", or "status: needs template" with a
-#   comment when it was written without a form; following a form later clears the latter. When the
-#   author replies to an issue marked "status: needs info", it goes back to "status: needs triage"
-#   (and is reopened if it had been closed for lack of a reply). Issues marked "status: needs info"
-#   with no activity for 14 days are closed every day.
+# - Waiting on the author: an issue written without a form is marked "status: needs template" with
+#   a comment, cleared once it follows a form. An issue marked "status: needs info" is cleared when
+#   its author replies, and reopened if it had been closed for lack of a reply; those with no
+#   activity for 14 days are closed every day. Progress and priority are tracked in the project.
+# - Commands: a maintainer's comment that starts with "/needs-info", "/duplicate #<number>" or
+#   "/wontfix" marks the issue accordingly; the last two also close it.
 # - Running the workflow by hand applies types and labels to every open issue, and to closed ones
 #   too when asked, without changing their status or commenting. Issues labeled bug, enhancement or
 #   documentation take their type from that label. Issues already sorted cost no requests, and a run
@@ -49,7 +50,6 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const STALE_DAYS = 14;
-            const TRIAGE = "status: needs triage";
             const TEMPLATE = "status: needs template";
             const INFO = "status: needs info";
             const MARKER = "<!-- issue-triage:template -->";
@@ -128,7 +128,6 @@ jobs:
                 await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: [add] });
               }
             };
-            const hasStatus = (issue) => issue.labels.some((label) => label.name.startsWith("status: "));
 
             const askForTemplate = async (issue) => {
               const comments = await github.paginate(github.rest.issues.listComments,
@@ -150,24 +149,42 @@ jobs:
               const form = fromForm(answers(issue.body));
               await setType(issue);
               await applyLabels(issue, action === "edited" && Boolean(context.payload.changes?.body));
-              if (action === "opened" && !hasStatus(issue)) {
-                if (form) {
-                  await swap(issue, null, TRIAGE);
-                } else {
-                  await swap(issue, null, TEMPLATE);
-                  await askForTemplate(issue);
-                }
+              if (action === "opened" && !form && !has(issue, TEMPLATE)) {
+                await swap(issue, null, TEMPLATE);
+                await askForTemplate(issue);
               } else if (action === "edited" && form && has(issue, TEMPLATE)) {
-                await swap(issue, TEMPLATE, TRIAGE);
+                await swap(issue, TEMPLATE, null);
               }
             } else if (event === "issue_comment") {
               const issue = context.payload.issue;
-              const author = context.payload.comment.user.login === issue.user.login;
-              if (author && has(issue, INFO)) {
+              const comment = context.payload.comment;
+              const maintainer = ["OWNER", "MEMBER", "COLLABORATOR"].includes(comment.author_association);
+              const command = maintainer ? comment.body.trim().match(/^\/(needs-info|duplicate|wontfix)\b(.*)/) : null;
+              if (command) {
+                const [, name, rest] = command;
+                if (name === "needs-info") {
+                  await swap(issue, null, INFO);
+                } else if (name === "duplicate") {
+                  const original = rest.match(/#(\d+)/)?.[1];
+                  if (!original) {
+                    core.warning("/duplicate needs the number of the original issue, as in /duplicate #123");
+                  } else {
+                    await swap(issue, INFO, "duplicate");
+                    await github.rest.issues.update({
+                      owner, repo, issue_number: issue.number, state: "closed", state_reason: "duplicate",
+                    });
+                  }
+                } else {
+                  await swap(issue, INFO, "wontfix");
+                  await github.rest.issues.update({
+                    owner, repo, issue_number: issue.number, state: "closed", state_reason: "not_planned",
+                  });
+                }
+              } else if (comment.user.login === issue.user.login && has(issue, INFO)) {
                 if (issue.state === "closed") {
                   await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: "open" });
                 }
-                await swap(issue, INFO, TRIAGE);
+                await swap(issue, INFO, null);
               }
             } else if (event === "schedule") {
               const cutoff = Date.now() - STALE_DAYS * 86_400_000;

@@ -13,6 +13,16 @@ body:
       placeholder: "README.md#building-from-source, Settings → Editor, Release Notes 0.1.970"
     validations:
       required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >-
+        The version you use, shown in Settings → About or by running `winc --version`, so the text
+        can be checked against that version.
+      placeholder: "0.1.970"
+    validations:
+      required: true
   - type: textarea
     id: issue
     attributes:
