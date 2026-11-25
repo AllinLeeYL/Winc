@@ -130,6 +130,7 @@ editor-download-skipped-link-loop = 符号链接存在循环
 editor-open-binary = 此文件为二进制文件，无法打开
 editor-open-too-large = 文件过大（{ $size } MB），超过 { $limit } GB 的上限
 editor-unreadable-not-found = 文件不存在
+editor-new-file = 新文件，保存后写入磁盘
 editor-unreadable-permission = 无读取权限
 editor-unreadable-failed = 读取失败（{ $error }）
 editor-unsupported-image = 图片

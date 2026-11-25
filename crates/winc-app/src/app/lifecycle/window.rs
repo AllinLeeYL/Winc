@@ -126,7 +126,7 @@ impl App {
                 self.open_folder(&target.path);
                 continue;
             }
-            self.open_path(&target.path);
+            self.open_path_or_new(&target.path);
             self.note_opened_file(&target.path);
             if let Some(line) = target.line {
                 self.jump_to(line, target.col.unwrap_or(0), 0);
