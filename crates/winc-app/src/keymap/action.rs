@@ -24,6 +24,8 @@ pub enum Action {
     GoBack,
     GoForward,
     Settings,
+    ExportSettings,
+    ImportSettings,
     ReleaseNotes,
     KeyboardShortcuts,
     RecordKeys,
@@ -467,6 +469,8 @@ impl Action {
             GoBack => t!("cmd-go-back"),
             GoForward => t!("cmd-go-forward"),
             Settings => t!("cmd-settings"),
+            ExportSettings => t!("cmd-export-settings"),
+            ImportSettings => t!("cmd-import-settings"),
             ReleaseNotes => t!("cmd-release-notes"),
             KeyboardShortcuts => t!("cmd-keyboard-shortcuts"),
             RecordKeys => t!("cmd-record-keys"),
@@ -792,6 +796,8 @@ impl Action {
             | GoBack
             | GoForward
             | Settings
+            | ExportSettings
+            | ImportSettings
             | ReleaseNotes
             | KeyboardShortcuts
             | RecordKeys

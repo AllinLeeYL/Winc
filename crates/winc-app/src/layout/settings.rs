@@ -18,13 +18,16 @@ pub use controls::*;
 pub use keys::*;
 pub use pages::*;
 
-/// 格式化页列出的语言（语言 id）：格式化工具一组，修复工具一组。
+/// 设置页中随状态列出的行：格式化页的各语言，Vim 分组下与快捷键冲突的键。
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct ToolLanguages {
+pub struct Listed {
     /// 「格式化工具」一组列出的语言 id。
     pub format: Vec<&'static str>,
     /// 「修复工具」一组列出的语言 id。
     pub fix: Vec<&'static str>,
+    /// 「快捷键冲突」一组列出的键：与 `Ctrl` 组合、Vim 有命令、编辑区也有快捷键的字符；Vim 模式
+    /// 关闭时为空，不列出这一组。
+    pub vim_keys: Vec<char>,
 }
 
 /// 一页中的一组设置项，共用一块底色，可以带标题。
@@ -84,6 +87,9 @@ pub enum Setting {
     VimRelativeNumber,
     /// Vim 模式下复制之后高亮被复制的范围。
     VimYankHighlight,
+    /// 「快捷键冲突」一组中的一行：`Ctrl` 与这个字符的组合交给 Vim 还是编辑器
+    /// （`vim.handleKeys`）。
+    VimKey(char),
     /// 自动换行。
     WordWrap,
     /// 超长行显示全部内容（`wholeLines`）。
@@ -243,6 +249,10 @@ pub enum Setting {
     ExplorerMenu,
     /// 把 Winc 列为各文件类型的候选程序（Windows 上由安装程序装在当前用户之下时）。
     FileAssociations,
+    /// 把配置文件导出为一个文件。
+    ExportSettings,
+    /// 用导出的文件替换当前的配置。
+    ImportSettings,
     /// 键位方案；只在搜索结果中作为一行列出，「快捷键」页顶部另有一份。
     Keymap,
     /// 搜索结果中名称或按键与搜索内容相符的命令：点击后在「快捷键」页中查看。
@@ -262,8 +272,8 @@ impl Setting {
 
     /// 返回搜索 `query` 时列出的设置项，顺序与搜索结果中从上到下的顺序相同（见
     /// [`search_sections`]）；键盘上下移动按此顺序进行。
-    pub fn found(query: &str, languages: &ToolLanguages, modules: Modules) -> Vec<Setting> {
-        (search_sections(query, languages, modules).into_iter())
+    pub fn found(query: &str, listed: &Listed, modules: Modules) -> Vec<Setting> {
+        (search_sections(query, listed, modules).into_iter())
             .flat_map(|section| section.items)
             .collect()
     }
@@ -272,13 +282,13 @@ impl Setting {
     /// 每页从上到下。
     ///
     /// 键盘上下移动按此顺序进行，越过一页的首尾时切换到相邻页。
-    pub fn all(languages: &ToolLanguages, modules: Modules) -> Vec<Setting> {
+    pub fn all(listed: &Listed, modules: Modules) -> Vec<Setting> {
         SettingsPage::listed(modules)
             .flat_map(|page| match page {
                 // 「快捷键」页没有设置项，移动到该页即选中该页的搜索框。
                 SettingsPage::Keys => vec![Setting::KeySearch],
                 page => page
-                    .sections(languages)
+                    .sections(listed)
                     .into_iter()
                     .flat_map(|section| section.items)
                     .collect(),
@@ -316,7 +326,7 @@ impl Setting {
             S::DefaultLanguage | S::DetectLanguageOnPaste | S::VimMode | S::VimClipboard => {
                 SettingsPage::Editor
             }
-            S::VimRelativeNumber | S::VimYankHighlight => SettingsPage::Editor,
+            S::VimRelativeNumber | S::VimYankHighlight | S::VimKey(_) => SettingsPage::Editor,
             S::PreviewOnClick | S::DropFolder | S::CompactFolders | S::Outline | S::FindInFiles => {
                 SettingsPage::Files
             }
@@ -353,6 +363,7 @@ impl Setting {
             }
             S::GitRememberCredentials => SettingsPage::Git,
             S::ExplorerMenu | S::FileAssociations => SettingsPage::General,
+            S::ExportSettings | S::ImportSettings => SettingsPage::General,
             S::GitModule | S::TerminalModule | S::RemoteModule => SettingsPage::Modules,
             S::Version | S::CopySystemInfo | S::Updates | S::ReleaseNotes | S::Website => {
                 SettingsPage::About
@@ -455,12 +466,15 @@ impl Setting {
             S::TerminalModule => "terminal.enabled",
             S::RemoteModule => "remote.enabled",
             S::GitTree | S::FormatCommand(_) | S::FixCommand(_) | S::AddLanguage => return None,
+            // 各键的归属合在 `vim.handleKeys` 一项中，逐键改写和恢复默认。
+            S::VimKey(_) => return None,
             S::AddFixLanguage | S::Version | S::CopySystemInfo | S::Updates | S::ReleaseNotes => {
                 return None;
             }
             S::Website | S::Repository | S::Community | S::License | S::KeySearch => return None,
             S::Keymap | S::KeyMatches => return None,
             S::ExplorerMenu | S::FileAssociations => return None,
+            S::ExportSettings | S::ImportSettings => return None,
         })
     }
 
@@ -538,6 +552,7 @@ impl Setting {
             Setting::FormatCommand(id) | Setting::FixCommand(id) => {
                 winc_syntax::find(id).map_or(id, |l| l.name)
             }
+            Setting::VimKey(c) => ctrl_label(c),
             Setting::AddLanguage | Setting::AddFixLanguage => t!("settings-add-language"),
             Setting::TerminalShell => t!("settings-terminal-shell"),
             Setting::TerminalPosition => t!("settings-terminal-position"),
@@ -568,6 +583,8 @@ impl Setting {
             Setting::RemoteModule => t!("settings-remote-module"),
             Setting::ExplorerMenu => t!("settings-explorer-menu"),
             Setting::FileAssociations => t!("settings-file-associations"),
+            Setting::ExportSettings => t!("settings-export"),
+            Setting::ImportSettings => t!("settings-import"),
             Setting::KeySearch => t!("settings-key-search"),
             Setting::Keymap => t!("settings-keys-keymap"),
             Setting::KeyMatches => t!("settings-key-matches"),
@@ -585,6 +602,16 @@ impl Setting {
                 None => Cow::Borrowed(t!("settings-terminal-module-desc")),
             };
             return Some(text);
+        }
+        // 冲突的键：说明它在编辑区对应的命令。
+        if let Setting::VimKey(c) = self {
+            let stroke = keymap::Stroke {
+                key: keymap::KeyCode::Char(c),
+                mods: keymap::Mods::CTRL,
+            };
+            let binding = keymap::editor_binding(stroke)?;
+            let action = binding.action.title();
+            return Some(Cow::Owned(t!("settings-vim-key-desc", action = action)));
         }
         let text = match self {
             Setting::SystemTitleBar => Some(t!("settings-system-title-bar-desc")),
@@ -645,6 +672,8 @@ impl Setting {
             Setting::RemoteModule => Some(t!("settings-remote-module-desc")),
             Setting::ExplorerMenu => Some(t!("settings-explorer-menu-desc")),
             Setting::FileAssociations => Some(t!("settings-file-associations-desc")),
+            Setting::ExportSettings => Some(t!("settings-export-desc")),
+            Setting::ImportSettings => Some(t!("settings-import-desc")),
             Setting::GitConfirmPush => Some(t!("settings-git-confirm-push-desc")),
             Setting::GitRememberCredentials => Some(t!("settings-git-remember-credentials-desc")),
             Setting::SystemProxy => Some(t!("settings-system-proxy-desc")),
@@ -757,6 +786,7 @@ impl Setting {
             | Setting::Zoom
             | Setting::RenderWhitespace
             | Setting::VimClipboard
+            | Setting::VimKey(_)
             | Setting::TerminalPosition
             | Setting::TerminalTabPosition
             | Setting::TerminalOptionAsMeta
@@ -776,6 +806,7 @@ impl Setting {
             | Setting::Community
             | Setting::License => SettingControl::Link,
             Setting::Updates | Setting::KeyMatches => SettingControl::Button,
+            Setting::ExportSettings | Setting::ImportSettings => SettingControl::Button,
         }
     }
 }
@@ -866,6 +897,8 @@ pub enum SettingsPart {
     KeyEdit(keymap::Action),
     /// 悬停在改过的一行上时出现的「恢复默认」。
     KeyReset(keymap::Action),
+    /// 悬停在被 Vim 占用的一行上时出现的「查看冲突」：打开设置中这个 `Ctrl` 键的归属。
+    KeyVim(keymap::Action, char),
     /// 修改快捷键时第几个已有的键上的 ×。
     KeyRemove(usize),
     /// 修改快捷键时的「保存」。
@@ -889,8 +922,8 @@ pub struct SettingsView<'a> {
     pub page: SettingsPage,
     /// 分类栏顶部搜索框中的文字；不为空白时正文换成搜索结果。
     pub query: &'a str,
-    /// 格式化页列出的语言。
-    pub languages: &'a ToolLanguages,
+    /// 随状态列出的行（格式化页的语言、Vim 的冲突键）。
+    pub listed: &'a Listed,
     /// 分类栏中「终端」一项的显示比例（0 到 1，开关终端模块时渐变，见
     /// [`SettingsPage::listed`]）。
     pub terminal: f32,
@@ -931,7 +964,7 @@ pub fn settings_card(window: Rect, (dx, dy): (f32, f32)) -> Rect {
 /// 各组按页的顺序排列，组内按页内的顺序；组下方的文字按钮不参与搜索。「快捷键」页列出键位方案
 /// （[`Setting::Keymap`]），以及有命令的名称或按键与 `query` 相符时的 [`Setting::KeyMatches`]。
 /// `modules` 为各模块是否开启（见 [`SettingsPage::listed`]）。
-pub fn search_sections(query: &str, languages: &ToolLanguages, modules: Modules) -> Vec<Section> {
+pub fn search_sections(query: &str, listed: &Listed, modules: Modules) -> Vec<Section> {
     let query = query.trim().to_lowercase();
     let query = query.as_str();
     let named = move |title: &str| title.to_lowercase().contains(query);
@@ -942,7 +975,7 @@ pub fn search_sections(query: &str, languages: &ToolLanguages, modules: Modules)
             let commands = (crate::keymap::count_matches(query) > 0).then_some(Setting::KeyMatches);
             keymap.into_iter().chain(commands).collect()
         } else {
-            let items = page.sections(languages).into_iter().flat_map(|section| {
+            let items = page.sections(listed).into_iter().flat_map(|section| {
                 let whole = whole || section.title.is_some_and(named);
                 let product = section.items.iter().any(|s| {
                     matches!(s, Setting::Version | Setting::CopySystemInfo)
@@ -1032,7 +1065,7 @@ impl SettingsLayout {
         let &SettingsView {
             page,
             query,
-            languages,
+            listed,
             terminal,
             git,
             editing,
@@ -1097,9 +1130,9 @@ impl SettingsLayout {
                 git: git > 0.0,
                 terminal: terminal > 0.0,
             };
-            search_sections(query, languages, modules)
+            search_sections(query, listed, modules)
         } else {
-            page.sections(languages)
+            page.sections(listed)
         };
         for (i, section) in sections.into_iter().enumerate() {
             if i > 0 {
