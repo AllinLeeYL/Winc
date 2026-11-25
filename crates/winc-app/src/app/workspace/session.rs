@@ -53,7 +53,7 @@ impl App {
         // 连接成功后远端模块打开的是项目的第一个目录，此处改为打开项目。
         if project.is_none()
             && let Some(file) = self.remote.project.take()
-            && super::project::project_folders(&file).is_ok_and(|p| p.root == root)
+            && self.project_of(&file).is_ok_and(|p| p.root == root)
         {
             self.open_folder(&file);
             return;

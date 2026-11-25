@@ -174,6 +174,11 @@ pub struct Shared {
     ///
     /// 在一个窗口里复制、到另一个窗口里粘贴也要认得，所以各窗口共用。
     pub remote_copy: RefCell<Option<RemoteCopy>>,
+    /// 最近一次连接时在后台读好的远端项目文件；界面线程上不读取远端文件（见
+    /// `App::folder_target`）。
+    ///
+    /// 项目可能在新窗口中打开，新窗口同样要用，所以各窗口共用。
+    pub(crate) remote_project: RefCell<Option<crate::app::workspace::project::ProjectFolders>>,
     /// 退出前是否需要询问用户：有窗口存在未保存的文档，或者终端中有程序在运行。
     ///
     /// `AppKit` 的 `⌘Q` 回调读取该值，决定直接退出还是回到事件
