@@ -242,6 +242,7 @@ impl Action {
             GitClone => "Git: Clone Repository…",
             GitInit => "Git: Initialize Repository",
             GitSwitchRepository => "Git: Switch Repository",
+            GitAddRepository => "Git: Add Repository…",
             GitSwitchWorktree => "Git: Switch Worktree…",
             GitNewWorktree => "Git: New Worktree…",
             GitSwitchBranch => "Git: Switch Branch…",

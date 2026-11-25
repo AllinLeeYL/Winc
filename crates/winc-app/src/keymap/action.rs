@@ -314,6 +314,7 @@ pub enum Action {
     GitInit,
     /// 打开提交视图并展开位置选择器。
     GitSwitchRepository,
+    GitAddRepository,
     GitSwitchWorktree,
     GitNewWorktree,
     /// 展开分支选择器（提交视图里从分支行，否则从状态栏）。
@@ -700,6 +701,7 @@ impl Action {
             GitClone => t!("cmd-git-clone"),
             GitInit => t!("cmd-git-init"),
             GitSwitchRepository => t!("cmd-git-switch-repository"),
+            GitAddRepository => t!("cmd-git-add-repository"),
             GitSwitchWorktree => t!("cmd-git-switch-worktree"),
             GitNewWorktree => t!("cmd-git-new-worktree"),
             GitSwitchBranch => t!("cmd-git-switch-branch"),
@@ -971,6 +973,7 @@ impl Action {
             | GitClone
             | GitInit
             | GitSwitchRepository
+            | GitAddRepository
             | GitSwitchWorktree
             | GitNewWorktree
             | GitSwitchBranch
@@ -1182,6 +1185,7 @@ impl Action {
             | Action::GitClone
             | Action::GitInit
             | Action::GitSwitchRepository
+            | Action::GitAddRepository
             | Action::GitSwitchWorktree
             | Action::GitNewWorktree
             | Action::GitSwitchBranch

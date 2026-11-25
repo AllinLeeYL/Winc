@@ -242,6 +242,7 @@ pub const ACTIONS: &[Action] = {
         GitClone,
         GitInit,
         GitSwitchRepository,
+        GitAddRepository,
         GitSwitchWorktree,
         GitNewWorktree,
         GitSwitchBranch,

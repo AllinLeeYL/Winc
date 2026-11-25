@@ -215,6 +215,8 @@ pub enum MenuCommand {
     LocationRemove,
     /// 位置选择器的操作菜单：清理目录已不存在的工作树。
     LocationPrune,
+    /// 位置选择器的操作菜单：把仓库从列表中移除（不删除文件），再次手动添加前不再列出。
+    LocationForget,
     Cut,
     Copy,
     Paste,
@@ -652,6 +654,7 @@ impl MenuCommand {
             // 文字来自当时的分支和位置（`App::menu_label`）。
             MenuCommand::StatusPlace(_) => "",
             MenuCommand::LocationPrune => t!("git-location-prune"),
+            MenuCommand::LocationForget => t!("git-location-forget"),
             MenuCommand::GitFetch => t!("menu-git-fetch"),
             MenuCommand::GitPull => t!("menu-git-pull"),
             MenuCommand::GitPush => t!("menu-git-push"),
