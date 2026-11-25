@@ -617,6 +617,7 @@ impl App {
                 let canceled = self.copy_finished(&copying);
                 self.downloaded(outcome, canceled);
             }
+            UserEvent::PromptCopied(prompt, skipped) => self.prompt_copied(prompt, skipped),
             UserEvent::Copied(copies, failures, copying) => {
                 self.copy_finished(&copying);
                 self.copied_into_tree(copies, failures);

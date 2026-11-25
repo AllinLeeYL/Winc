@@ -26,6 +26,15 @@ menu-open-image = Open Image in New Tab
 menu-open-recent-in-new-window = Open “{ $name }” in New Window
 menu-copied-path = Copied path
 menu-copied-relative-path = Copied relative path
+menu-copy-as-prompt = Copy as Prompt
+menu-copied-as-prompt = Copied as prompt
+menu-copied-as-prompt-skipped =
+    { $count ->
+        [one] Copied as prompt; skipped 1 file
+       *[other] Copied as prompt; skipped { $count } files
+    }
+menu-copy-as-prompt-empty = No readable UTF-8 text files within the prompt size limit
+menu-copy-as-prompt-too-many = Select at most { $limit } files to copy as a prompt
 menu-copied-reference = Copied { $reference }
 menu-copy-reference-unsaved = The file hasn’t been saved and has no path
 

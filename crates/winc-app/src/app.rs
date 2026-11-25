@@ -250,6 +250,8 @@ pub enum UserEvent {
     ),
     /// 拖进文件树的文件和目录已在后台复制完成：各个副本的路径、复制失败的说明，以及这次复制。
     Copied(Vec<PathBuf>, Vec<String>, Arc<winc_editor::Copying>),
+    /// 已生成要复制的提示词；第二个参数是跳过的文件数。
+    PromptCopied(String, usize),
     /// 窗口已关闭时点击了程序坞中的图标（macOS）：重新显示窗口。
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Reopen,
