@@ -261,11 +261,6 @@
       ]
     },
     {
-      "name": "status: needs triage",
-      "color": "fbca04",
-      "description": "Not yet reviewed by a maintainer"
-    },
-    {
       "name": "status: needs template",
       "color": "b60205",
       "description": "Not written with an issue form; please edit it to follow one"
@@ -274,21 +269,6 @@
       "name": "status: needs info",
       "color": "d93f0b",
       "description": "Waiting for the author; closed after 14 days without a reply"
-    },
-    {
-      "name": "status: confirmed",
-      "color": "0e8a16",
-      "description": "Reproduced or accepted, ready to be worked on"
-    },
-    {
-      "name": "priority: high",
-      "color": "e11d21",
-      "description": "Affects many users or blocks common work"
-    },
-    {
-      "name": "priority: low",
-      "color": "c5def5",
-      "description": "Minor; fixed when convenient"
     },
     {
       "name": "duplicate",
