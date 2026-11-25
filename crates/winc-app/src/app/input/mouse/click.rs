@@ -465,6 +465,8 @@ impl App {
                     HeaderHit::Maximize => self.toggle_terminal_maximized(),
                     HeaderHit::Split => self.split_terminal(),
                     HeaderHit::Hide => self.click_terminal_button(),
+                    HeaderHit::Editor => self.move_terminal_to_editor(),
+                    HeaderHit::Panel => self.move_terminal_to_panel(),
                     HeaderHit::Run(_) | HeaderHit::Find(_) => {}
                 }
             }

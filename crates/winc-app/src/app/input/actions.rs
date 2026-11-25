@@ -133,7 +133,12 @@ impl App {
             OpenRecent => self.open_recent_folders(),
             Save => self.save_active(),
             SaveAs => {
-                if let Some(id) = self.editor.active().map(|d| d.id) {
+                if let Some(id) = self
+                    .editor
+                    .active()
+                    .filter(|doc| !doc.terminal)
+                    .map(|doc| doc.id)
+                {
                     self.pick(Pick::SaveAs(id));
                 }
             }
@@ -162,6 +167,8 @@ impl App {
             PreviousPane => self.cycle_pane(false),
             SplitTerminal => self.split_terminal(),
             MoveTerminalToGroup => self.move_terminal_to_new_group(),
+            MoveTerminalToEditor => self.move_terminal_to_editor(),
+            MoveTerminalToPanel => self.move_terminal_to_panel(),
             NextTerminalPane => self.cycle_terminal_pane(true),
             PreviousTerminalPane => self.cycle_terminal_pane(false),
             NextTab => self.cycle_tab(true),
@@ -619,7 +626,24 @@ impl App {
     /// 命令当前是否可用：属于某个模块的命令只在模块开着时可用。
     pub(in crate::app) fn action_available(&self, action: Action) -> bool {
         match action {
+            Action::Save | Action::SaveAs
+                if self.editor.active().is_some_and(|doc| doc.terminal) =>
+            {
+                return false;
+            }
             Action::RunConfiguration if self.editor.root().is_none() => return false,
+            Action::MoveTerminalToEditor
+                if self.terminal.editor_at(self.terminal.group_at).is_some()
+                    || self.terminal.tab().is_none() =>
+            {
+                return false;
+            }
+            Action::MoveTerminalToPanel
+                if !self.terminal_in_editor()
+                    || !self.editor.active().is_some_and(|doc| doc.terminal) =>
+            {
+                return false;
+            }
             // 编辑提交说明只在日志里可用；其余位置同一个键执行其他命令。
             Action::GitRewordCommit if !self.log_active() => return false,
             // 转到子提交、父提交只在日志的提交列表上可用：文件列表里 `←` 是返回。

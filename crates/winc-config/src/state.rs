@@ -251,7 +251,7 @@ pub struct TerminalSession {
     pub width: f32,
     /// 面板是否最大化（铺满编辑区）。
     pub maximized: bool,
-    /// 面板分成的各栏，按排列顺序；各栏的标签在 `tabs` 中依次接在一起。没有分栏时为空。
+    /// 终端各栏，按存储顺序；各栏的 shell 在 `tabs` 中依次接在一起。单个面板栏时为空。
     pub groups: Vec<TerminalGroup>,
 }
 
@@ -1486,7 +1486,7 @@ pub use places::{FilePlace, MAX_PLACES};
 use places::{read_file_places, read_views, write_file_places};
 pub use repositories::SessionRepositories;
 use repositories::{read_repositories, repositories_json};
-pub use terminal::TerminalGroup;
+pub use terminal::{TerminalEditor, TerminalGroup};
 use terminal::{read_terminal_groups, terminal_groups_json};
 
 #[cfg(test)]

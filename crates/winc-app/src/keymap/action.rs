@@ -374,6 +374,10 @@ pub enum Action {
     SplitTerminal,
     /// 终端：把正在看的标签移到正在用的一栏后面新加的一栏（见 `App::move_terminal_to_new_group`）。
     MoveTerminalToGroup,
+    /// 把当前终端标签移到编辑区，保留运行中的程序。
+    MoveTerminalToEditor,
+    /// 把编辑区中的终端标签移回终端面板。
+    MoveTerminalToPanel,
     NextTerminalPane,
     PreviousTerminalPane,
     FocusTerminal1,
@@ -738,6 +742,8 @@ impl Action {
             PreviousTerminal => t!("cmd-previous-terminal"),
             SplitTerminal => t!("cmd-split-terminal"),
             MoveTerminalToGroup => t!("cmd-move-terminal-to-group"),
+            MoveTerminalToEditor => t!("cmd-move-terminal-to-editor"),
+            MoveTerminalToPanel => t!("cmd-move-terminal-to-panel"),
             NextTerminalPane => t!("cmd-next-terminal-pane"),
             PreviousTerminalPane => t!("cmd-previous-terminal-pane"),
             FocusTerminal1 => t!("cmd-terminal-1"),
@@ -1010,6 +1016,8 @@ impl Action {
             | PreviousTerminal
             | SplitTerminal
             | MoveTerminalToGroup
+            | MoveTerminalToEditor
+            | MoveTerminalToPanel
             | NextTerminalPane
             | PreviousTerminalPane
             | FocusTerminal1
@@ -1220,6 +1228,8 @@ impl Action {
             | Action::PreviousTerminal
             | Action::SplitTerminal
             | Action::MoveTerminalToGroup
+            | Action::MoveTerminalToEditor
+            | Action::MoveTerminalToPanel
             | Action::NextTerminalPane
             | Action::PreviousTerminalPane
             | Action::FocusTerminal1

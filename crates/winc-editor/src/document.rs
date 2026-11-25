@@ -493,6 +493,8 @@ pub struct Document {
     pub log: Option<Box<crate::git::log::LogView>>,
     /// 编辑区按十六进制显示文件的字节，而不是文本；只读，文本为空。
     pub hex: Option<Box<crate::hex::HexView>>,
+    /// 编辑区显示终端而不是文本；会话由界面层管理，没有对应的文件。
+    pub terminal: bool,
     /// 切换到预览之前的 `readonly`：SVG 的预览期间强制只读，切回源代码时恢复该值。
     readonly_before_preview: bool,
     /// 分栏预览（`PreviewMode::Split`）：文本仍然显示，右侧的预览由界面管理。
@@ -625,6 +627,7 @@ impl Document {
             diff: None,
             log: None,
             hex: None,
+            terminal: false,
             readonly_before_preview: false,
             split: false,
             rendered: false,
@@ -704,7 +707,7 @@ impl Document {
     ///
     /// 当前内容作为保存基线：不修改时关闭不询问是否保存。不是输出标签时不做处理。
     pub fn make_untitled(&mut self) {
-        if self.reading.is_some() || self.diff.is_some() || self.log.is_some() {
+        if self.reading.is_some() || self.diff.is_some() || self.log.is_some() || self.terminal {
             return;
         }
         if let Some(title) = self.title.take() {
@@ -759,6 +762,15 @@ impl Document {
         document.title = Some(title.to_owned());
         document.readonly = true;
         document.log = Some(Box::new(view));
+        document
+    }
+
+    /// 创建终端标签，标题为 `title`；没有文本和文件，会话由界面层管理。
+    pub fn terminal(id: DocumentId, title: &str) -> Self {
+        let mut document = Self::empty(id);
+        document.title = Some(title.to_owned());
+        document.readonly = true;
+        document.terminal = true;
         document
     }
 
