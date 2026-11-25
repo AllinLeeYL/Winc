@@ -233,6 +233,8 @@ pub enum Setting {
     GitCombinedDiff,
     /// 点击工作树时在哪个窗口打开它（`git.openWorktree`）。
     GitOpenWorktree,
+    /// 在打开的目录下查找仓库的层数（`git.repositoryScanDepth`）。
+    GitScanDepth,
     /// 拉取、同步时合并还是变基（`git.pull`）。
     GitPullMode,
     /// 把目录拖进已打开目录的窗口时怎样处理（`dropFolder`）。
@@ -358,7 +360,7 @@ impl Setting {
             | S::GitTree
             | S::DiffInline
             | S::DiffCollapse => SettingsPage::Git,
-            S::GitCombinedDiff => SettingsPage::Git,
+            S::GitCombinedDiff | S::GitScanDepth => SettingsPage::Git,
             S::GitInlineBlame | S::GitPullMode | S::GitConfirmPush | S::GitAutoFetch => {
                 SettingsPage::Git
             }
@@ -462,6 +464,7 @@ impl Setting {
             S::GitStagingArea => "git.stagingArea",
             S::GitCombinedDiff => "git.combinedDiff",
             S::GitOpenWorktree => "git.openWorktree",
+            S::GitScanDepth => "git.repositoryScanDepth",
             S::GitPullMode => "git.pull",
             S::GitPath => "git.path",
             S::TerminalModule => "terminal.enabled",
@@ -575,6 +578,7 @@ impl Setting {
             Setting::GitStagingArea => t!("settings-git-staging-area"),
             Setting::GitCombinedDiff => t!("settings-git-combined-diff"),
             Setting::GitOpenWorktree => t!("settings-git-open-worktree"),
+            Setting::GitScanDepth => t!("settings-git-scan-depth"),
             Setting::GitPullMode => t!("settings-git-pull"),
             Setting::GitPath => t!("settings-git-path"),
             Setting::LatexPath => t!("settings-latex-path"),
@@ -683,6 +687,7 @@ impl Setting {
             Setting::GitStagingArea => Some(t!("settings-git-staging-area-desc")),
             Setting::GitCombinedDiff => Some(t!("settings-git-combined-diff-desc")),
             Setting::GitOpenWorktree => Some(t!("settings-git-open-worktree-desc")),
+            Setting::GitScanDepth => Some(t!("settings-git-scan-depth-desc")),
             Setting::GitPullMode => Some(t!("settings-git-pull-desc")),
             Setting::GitPath => Some(t!("settings-git-path-desc")),
             Setting::LatexPath => Some(t!("settings-latex-path-desc")),
@@ -716,7 +721,8 @@ impl Setting {
             | Setting::TerminalSize
             | Setting::TerminalFontWeight
             | Setting::MarkdownSize
-            | Setting::TabWidth => SettingControl::Stepper,
+            | Setting::TabWidth
+            | Setting::GitScanDepth => SettingControl::Stepper,
             Setting::Theme => SettingControl::Themes,
             Setting::LightTheme | Setting::DarkTheme => SettingControl::ThemeList,
             Setting::SystemTitleBar

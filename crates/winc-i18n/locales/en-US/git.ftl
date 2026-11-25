@@ -133,6 +133,14 @@ git-clone-running = Cloning…
 git-clone-invalid-url = Invalid URL
 git-clone-no-parent = The selected location doesn’t exist
 git-clone-occupied = The target folder already exists and isn’t empty
+git-repository-add-title = Add Repository
+git-repository-add-label = Location
+git-repository-add-placeholder = A folder in the repository, absolute or relative to the open folder
+git-repository-add-button = Add
+git-repository-add-needs-folder = Open a folder with Git turned on first
+git-repository-add-not-found = Couldn’t add repository: “{ $path }” isn’t in a Git repository
+git-repository-added = Added repository “{ $name }”
+git-repository-removed = Removed repository “{ $name }” from the list
 git-op-canceled = Canceled { $what }
 git-question-sign-in = Sign In to { $host }
 git-question-unlock-key = Unlock SSH Key
@@ -520,6 +528,7 @@ git-location-this-window = Open in This Window
 git-location-new-window = Open in New Window
 git-location-remove = Remove Worktree…
 git-location-prune = Prune Stale Worktrees
+git-location-forget = Remove from List
 git-tip-other-worktrees = { $count ->
     [one] 1 other worktree has uncommitted changes
    *[other] { $count } other worktrees have uncommitted changes
