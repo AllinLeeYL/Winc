@@ -294,8 +294,9 @@ pub(crate) fn restore_tabs(
 /// 按上次的现场和读好的 `prepared` 恢复标签，并把备份中未保存的内容放回文档。
 ///
 /// 标签按原来的顺序重新打开，激活当时的标签；现场中没有记录的备份（进程中止前来不及记录现场）
-/// 也会恢复，排在已记录的标签之后。现场中已不存在的文件跳过，除非该文件还有未保存的内容。文件树
-/// 是否展开到当前文件由调用方按设置决定（[`App::reveal_restored`]）。
+/// 也会恢复，排在已记录的标签之后。现场中已不存在的文件跳过，除非该文件还有未保存的内容。恢复
+/// 之前已打开的标签（命令行给出、双击打开或恢复期间打开的文件）排在恢复的标签之后，其中原来的
+/// 当前标签仍是当前标签。文件树是否展开到当前文件由调用方按设置决定（[`App::reveal_restored`]）。
 pub(crate) fn restore_prepared(
     editor: &mut Editor,
     session: Option<&Session>,
@@ -310,6 +311,8 @@ pub(crate) fn restore_prepared(
         lock,
         ..Default::default()
     };
+    let earlier: Vec<DocumentId> = editor.tabs().iter().map(|doc| doc.id).collect();
+    let earlier_active = editor.active().map(|doc| doc.id);
     let mut active = None;
     // 先恢复书签和折叠的块，之后打开各文件时由文件自行取用。
     if let Some(session) = session {
@@ -383,10 +386,17 @@ pub(crate) fn restore_prepared(
             .map(|(group, id)| (group.share, id))
             .collect();
     }
-    // 终端当前标签不能被文件的兜底选择覆盖；当前文件仍须属于前台窗格。
+    // 恢复之前已打开的标签依次移到前台窗格的末尾，相对顺序不变。
     let tabs = editor.tab_count();
+    for id in &earlier {
+        if let Some(at) = editor.index_of(*id).filter(|&at| at < tabs) {
+            editor.move_document(at, tabs - 1);
+        }
+    }
+    // 用户刚打开的文件优先，其次是现场中的终端、当时的当前标签；当前标签须属于前台窗格。
     let shown = |at: &usize| *at < tabs;
-    editor.active = terminal_active
+    editor.active = earlier_active
+        .or(terminal_active)
         .or(active)
         .and_then(|id| editor.index_of(id))
         .filter(shown)
