@@ -358,7 +358,7 @@ impl App {
         cards
     }
 
-    /// 当前终端的卡片：停靠栏使用面板的位置，编辑器终端使用它所在的窗格。
+    /// 当前终端的卡片：停靠栏使用面板的位置，编辑器终端使用所在窗格的位置。
     pub(crate) fn terminal_group_card_in(&self, card: Rect) -> Rect {
         if let Some(document) = self.terminal.editor_document() {
             return self.editor_terminal_card(document);
@@ -471,7 +471,7 @@ impl App {
         }
     }
 
-    /// 改用第 `at` 栏：焦点放进它正在看的标签；当前栏保持原有焦点。
+    /// 改用第 `at` 栏：焦点放进该栏正在看的标签；当前栏保持原有焦点。
     pub(in crate::app) fn focus_terminal_group(&mut self, at: usize) {
         if at >= self.terminal.group_count() || at == self.terminal.group_at {
             return;

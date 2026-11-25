@@ -298,22 +298,7 @@ impl App {
     ///
     /// 窗口尺寸、面板宽度、标签或预览状态变化后调用；面板跟着焦点关闭也在这一步完成。
     pub(crate) fn relayout(&mut self) {
-        if !self.terminal.borrowed() {
-            if self.focus == Focus::Editor {
-                if !self.activate_editor_terminal() {
-                    self.leave_editor_terminal();
-                }
-            } else if self.focus.in_terminal()
-                && self
-                    .terminal
-                    .editor_document()
-                    .is_some_and(|id| self.editor.active().is_none_or(|doc| doc.id != id))
-            {
-                self.focus = Focus::Editor;
-                self.leave_editor_terminal();
-            }
-            self.sync_terminal_editor_visibility();
-        }
+        self.sync_editor_terminal_focus();
         self.track_recent_tabs();
         self.note_terminal_tab_position();
         self.sync_project_offer();
@@ -409,6 +394,8 @@ impl App {
         }
         self.sync_wrap();
         self.sync_terminal();
+        // 新建、重开的终端标签此时才有名字。
+        self.sync_terminal_editor_titles();
         self.prepare_combined();
     }
 
@@ -422,7 +409,7 @@ impl App {
         self.place_minimap();
     }
 
-    /// 编辑器中的终端标签右端保留移回面板的按钮，内容区不再有第二个标签栏。
+    /// 当前标签是终端时，在标签栏右端留出「将终端移到面板」按钮；终端自己的标签栏不绘制。
     fn place_terminal_return(&mut self) {
         let l = &mut self.layout;
         l.terminal_return = Rect::default();

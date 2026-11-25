@@ -837,6 +837,8 @@ impl App {
                 }
             }
         }
+        // 标题和前台进程随消息变化，编辑区中的终端标签跟着改名。
+        shown |= self.sync_terminal_editor_titles();
         if shown || self.terminal.visible_state() != before {
             self.request_redraw();
         }

@@ -93,8 +93,10 @@ impl App {
         }
     }
 
-    /// 终端的自动标题、自定名称和前台进程变化后，编辑器标签跟随显示相同的名字。
-    pub(crate) fn sync_terminal_editor_titles(&mut self) {
+    /// 编辑区中的终端标签显示终端的名字（[`TermTab::label`]）：自定名称、程序设的标题或前台
+    /// 进程变化后调用；返回是否有标签的名字变了。
+    pub(in crate::app) fn sync_terminal_editor_titles(&mut self) -> bool {
+        let mut changed = false;
         for at in 0..self.terminal.group_count() {
             let Some(document) = self.terminal.editor_at(at) else {
                 continue;
@@ -106,15 +108,35 @@ impl App {
                 continue;
             };
             let name = tab.label();
-            match &mut doc.title {
-                Some(title) if title != name => title.clear(),
-                Some(_) => continue,
-                None => doc.title = Some(String::new()),
-            }
-            if let Some(title) = &mut doc.title {
-                title.push_str(name);
+            if doc.title.as_deref() != Some(name) {
+                doc.title = Some(name.to_owned());
+                changed = true;
             }
         }
+        changed
+    }
+
+    /// 按编辑区的当前标签调整焦点：焦点在编辑区、当前标签是终端时把按键交给该终端；焦点在
+    /// 终端、而编辑区当前显示的已不是该终端时，焦点回到编辑区。
+    ///
+    /// 结果只取决于当前标签和焦点，重复调用结果相同，因此排版（[`App::relayout`]）时调用，
+    /// 切换、关闭、移动标签之后都会经过这里。
+    pub(in crate::app) fn sync_editor_terminal_focus(&mut self) {
+        if self.terminal.borrowed() {
+            return;
+        }
+        if self.focus == Focus::Editor {
+            if !self.activate_editor_terminal() {
+                self.leave_editor_terminal();
+            }
+        } else if self.focus.in_terminal()
+            && (self.terminal.editor_document())
+                .is_some_and(|id| self.editor.active().is_none_or(|doc| doc.id != id))
+        {
+            self.focus = Focus::Editor;
+            self.leave_editor_terminal();
+        }
+        self.sync_terminal_editor_visibility();
     }
 
     /// 将当前编辑器终端换入终端运行上下文，不改变真实焦点。
@@ -147,7 +169,7 @@ impl App {
         true
     }
 
-    /// 离开编辑器终端时释放它的真实焦点；有停靠栏时换回上一次使用的面板上下文。
+    /// 离开编辑器终端时释放该终端的焦点；有停靠栏时换回上一次使用的面板上下文。
     pub(in crate::app) fn leave_editor_terminal(&mut self) {
         if !self.terminal_in_editor() {
             return;
@@ -256,6 +278,8 @@ impl App {
         self.request_redraw();
     }
 
+    /// 把刚建的终端标签 `document` 放到 `drop` 指定的位置并切换过去：放进当前窗格时挪到指定的
+    /// 序号，其余（其他窗格、边缘拆分）与拖动文件标签相同。
     fn place_terminal_editor_document(&mut self, document: DocumentId, drop: TabDrop) {
         match drop {
             TabDrop::Into { pane, at } if pane == self.editor.panes.focused => {
@@ -335,7 +359,7 @@ impl App {
         self.forget_closed_panes();
     }
 
-    /// 关闭编辑器标签前结束它持有的终端；文件关闭流程负责去掉文档本身。
+    /// 关闭编辑器标签前结束该标签持有的终端；文件关闭流程负责去掉文档本身。
     pub(in crate::app) fn close_editor_terminal_session(&mut self, document: DocumentId) {
         let Some(at) = self.editor_terminal_group(document) else {
             return;

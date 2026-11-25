@@ -159,7 +159,7 @@ fn draw_panel(app: &mut App, frame: &mut Frame<'_>) {
     }
 }
 
-/// 在当前编辑器窗格绘制其终端，共用网格、拆分和查找，不再绘制第二条终端标签栏。
+/// 在当前编辑器窗格绘制其终端，共用网格、拆分和查找；终端面板的标签栏不绘制。
 pub(in crate::view) fn draw_editor_terminal(app: &mut App, frame: &mut Frame<'_>) {
     let Some(id) = app
         .editor
@@ -192,6 +192,7 @@ pub(in crate::view) fn draw_editor_terminal(app: &mut App, frame: &mut Frame<'_>
     }
 }
 
+/// 编辑区中的终端标签正在改名时，在标签栏中该标签的位置绘制输入框。
 fn draw_editor_rename(app: &mut App, frame: &mut Frame<'_>) {
     let Some(index) = app.editor.active else {
         return;
@@ -242,6 +243,7 @@ fn draw_group(app: &mut App, frame: &mut Frame<'_>, card: Rect) {
     draw_find(app, frame);
 }
 
+/// 绘制当前终端标签的各个拆分：先画不在前台的，再画分隔线，最后画前台的。
 fn draw_panes(app: &mut App, frame: &mut Frame<'_>) {
     let p = app.palette;
     let focused = app.focus == Focus::Terminal && !app.panes.drawing_background;

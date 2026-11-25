@@ -22,10 +22,11 @@ pub struct TerminalEditor {
     pub pane: usize,
     /// 窗格内的位置，只计算会保存的文件、备份和终端标签。
     pub tab: usize,
-    /// 这个标签是否是该窗格的当前标签。
+    /// 是否为所在窗格的当前标签。
     pub active: bool,
 }
 
+/// 读出一栏在编辑区中的位置；窗格或标签的序号不是非负整数时返回 `None`，这一栏停靠在面板里。
 fn read_editor(json: &Json) -> Option<TerminalEditor> {
     let editor = json.as_object()?;
     let index = |key| {

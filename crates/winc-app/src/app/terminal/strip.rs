@@ -341,6 +341,7 @@ impl App {
         if self.focus == Focus::TerminalRename {
             self.focus = Focus::Terminal;
         }
+        self.sync_terminal_editor_titles();
         self.ime.field_preedit.clear();
         self.request_redraw();
     }

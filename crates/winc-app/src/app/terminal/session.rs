@@ -12,7 +12,7 @@ impl App {
     ) -> Option<TerminalSession> {
         let t = &self.terminal;
         // 运行配置的标签不恢复；拆分出的终端各记成一个标签。还没建出来的（面板保存时恢复的）
-        // 也算，放进它们要去的那一栏。
+        // 也算，放进各自要去的那一栏。
         let mut columns: Vec<Vec<(PathBuf, String, Option<String>)>> =
             vec![Vec::new(); t.group_count()];
         let mut active = None;
@@ -190,7 +190,7 @@ impl App {
         t.want_groups.clear();
         if session.groups.len() > 1 || session.groups.iter().any(|g| g.editor.is_some()) {
             for (at, group) in session.groups.iter().enumerate() {
-                // 正在用的一栏的标签在 `tabs` 里，这里仍记它的原始份额和编辑器标签。
+                // 正在用的一栏的标签在 `tabs` 里，这里仍记该栏原来的份额和编辑器标签。
                 let mut restored = groups::TermGroup::empty(group.share);
                 restored.editor = markers.get(at).copied().flatten();
                 t.groups.push(restored);

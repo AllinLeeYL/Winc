@@ -146,7 +146,6 @@ pub fn draw(app: &mut App, frame: &mut Frame<'_>) {
         return;
     }
     app.hits.clear();
-    app.sync_terminal_editor_titles();
     frame.base(&base(app));
     let layout = app.layout;
     app.panels.tree.overflow = tree_overflow(app, frame);

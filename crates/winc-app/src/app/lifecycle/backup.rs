@@ -181,7 +181,7 @@ pub(in crate::app) fn restore_session_panes(
         .iter()
         .enumerate()
         .map(|(i, pane)| {
-            // 保留缺失文件的空槽；终端位置是过滤它们之前的混合顺序。
+            // 保留缺失文件的空槽：终端的位置按过滤缺失文件之前的混合顺序记录。
             let mut slots: Vec<Option<DocumentId>> = pane
                 .tabs
                 .iter()

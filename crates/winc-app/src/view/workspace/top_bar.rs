@@ -406,6 +406,7 @@ fn draw_tabs(app: &mut App, frame: &mut Frame<'_>) {
     draw_terminal_return(app, frame);
 }
 
+/// 当前标签是终端时，绘制标签栏右端的「将终端移到面板」按钮（`Layout::terminal_return`）。
 fn draw_terminal_return(app: &App, frame: &mut Frame<'_>) {
     let button = app.layout.terminal_return;
     if button.w <= 0.0 || button.h <= 0.0 || !app.editor.active().is_some_and(|doc| doc.terminal) {
