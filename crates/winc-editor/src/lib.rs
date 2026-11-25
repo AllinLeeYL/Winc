@@ -54,6 +54,7 @@ pub use workspace::project_search::{
     FileResult, LineMatch, MAX_RESULTS, MAX_THREADS as MAX_SEARCH_THREADS, ProjectSearch, Query,
     ReplacePreview, replace_in_document, replace_in_file,
 };
+pub use workspace::prompt::{MAX_PROMPT_BYTES, MAX_PROMPT_FILES, Prompt, PromptFile, prompt};
 pub use workspace::tree::{
     DirEntry, DirFetch, DirFetched, DirListing, DirScan, EXPAND_DIRS, Entry, EntryKind, Expansion,
     Workspace, copy_entry, create_at, list_dir, move_at, natural_cmp, rename_at, segment_name,
@@ -76,6 +77,8 @@ pub struct Editor {
     pub workspace: Option<Workspace>,
     /// 是否把全部文档设为只读。
     all_locked: bool,
+    /// CSV、TSV 是否按列对齐显示（见 [`Self::set_align_columns`]）。
+    align_columns: bool,
     /// 默认的制表符显示宽度（列）。
     ///
     /// 只作用于未设置制表符宽度的文档；文档可经状态栏或 `.editorconfig` 覆盖，见
@@ -106,6 +109,7 @@ impl Default for Editor {
             panes: panes::Panes::default(),
             workspace: None,
             all_locked: false,
+            align_columns: true,
             tab_width: 4,
             diff_unified: false,
             diff_collapse: true,
@@ -458,6 +462,7 @@ impl Editor {
     /// 把新文档作为前台窗格的最后一个标签，沿用窗口的只读状态，返回它的标签序号（从 0 起）。
     fn insert_tab(&mut self, mut document: Document) -> usize {
         document.set_all_locked(self.all_locked);
+        document.set_align_columns(self.align_columns);
         document.claim_view(self.panes.focused);
         let index = self.panes.shown;
         self.documents.insert(index, document);
@@ -478,6 +483,16 @@ impl Editor {
         self.all_locked = locked;
         for document in &mut self.documents {
             document.set_all_locked(locked);
+        }
+    }
+
+    /// 设置 CSV、TSV 是否按列对齐显示，之后打开的文档也一样；默认对齐。
+    ///
+    /// 关闭时按原文排布，仍按列着色，可以自动换行。
+    pub fn set_align_columns(&mut self, align: bool) {
+        self.align_columns = align;
+        for document in &mut self.documents {
+            document.set_align_columns(align);
         }
     }
 
@@ -789,7 +804,7 @@ impl LoadedFile {
 ///
 /// `fresh` 与 `slot` 使用相同的 `DocumentId`。界面层按（`DocumentId`，`revision`）缓存查找
 /// 结果、粘滞滚动、括号配对和后台解码的图片，因此新文档的 `revision` 必须大于旧文档的，
-/// 否则新内容会命中旧内容的缓存。用户设置的只读随标签保留。
+/// 否则新内容会命中旧内容的缓存。用户设置的只读、窗口的列对齐设置随标签保留。
 fn replace_document(slot: &mut Document, mut fresh: Document) {
     fresh.revision += slot.revision + 1;
     if let (Some(old), Some(new)) = (slot.diff.as_deref(), fresh.diff.as_deref_mut()) {
@@ -797,6 +812,7 @@ fn replace_document(slot: &mut Document, mut fresh: Document) {
     }
     fresh.set_locked(slot.is_locked());
     fresh.set_all_locked(slot.all_locked());
+    fresh.set_align_columns(slot.aligns_columns());
     fresh.adopt_parked(slot);
     *slot = fresh;
 }

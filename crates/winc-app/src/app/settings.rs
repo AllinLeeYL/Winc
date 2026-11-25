@@ -761,12 +761,29 @@ impl App {
         )
     }
 
-    /// 将值 `setting`（版本号）复制到剪贴板，并在状态栏提示。
+    /// 把版本信息（[`crate::system::info::report`]：版本、架构和系统）复制到剪贴板，供问题反馈
+    /// 使用，并在状态栏提示；`setting` 是「关于」页的版本号一行。
     pub(in crate::app) fn settings_copy_value(&mut self, setting: Setting) {
         self.settings.selected = setting;
-        let version = crate::layout::version_label();
-        self.set_clipboard(version.clone(), false);
-        self.flash(t!("settings-version-copied", version = version));
+        let report = crate::system::info::report(self.display_protocol());
+        self.set_clipboard(report, false);
+        self.flash(t!("settings-version-info-copied"));
+    }
+
+    /// 窗口所用的显示协议：Linux 上为 `Wayland` 或 `X11`，其他平台和没有窗口时为 `None`。
+    fn display_protocol(&self) -> Option<&'static str> {
+        #[cfg(target_os = "linux")]
+        {
+            use winit::raw_window_handle::{HasDisplayHandle, RawDisplayHandle};
+            let window = self.window.handle.as_ref()?;
+            match window.display_handle().ok()?.as_raw() {
+                RawDisplayHandle::Wayland(_) => Some("Wayland"),
+                RawDisplayHandle::Xlib(_) | RawDisplayHandle::Xcb(_) => Some("X11"),
+                _ => None,
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
+        None
     }
 
     /// 处理 `↩` 或空格：输入框进入编辑，开关切换，格式化命令、「添加语言…」「排除的语言」弹出菜单，

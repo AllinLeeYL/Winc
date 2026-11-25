@@ -35,6 +35,7 @@ impl App {
             old.word_wrap != new.word_wrap,
             old.sticky_scroll != new.sticky_scroll,
         );
+        let align = (old.align_columns != new.align_columns).then_some(new.align_columns);
         let images = old.markdown_remote_images != new.markdown_remote_images;
         let minimap = old.minimap != new.minimap
             || old.line_numbers != new.line_numbers
@@ -78,6 +79,9 @@ impl App {
         }
         if wrap {
             self.word_wrap_changed();
+        }
+        if let Some(align) = align {
+            self.editor.set_align_columns(align != Some(false));
         }
         if minimap {
             self.relayout();
