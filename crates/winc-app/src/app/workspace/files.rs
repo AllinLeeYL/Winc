@@ -335,7 +335,7 @@ impl App {
         self.focus = Focus::Editor;
         self.note_recent_file();
         self.relayout();
-        self.reveal_active();
+        self.auto_reveal_active();
         self.announce_readonly();
         self.ensure_caret_visible();
         self.reset_blink();
@@ -601,7 +601,7 @@ impl App {
         self.activate_editor_terminal();
         self.note_recent_file();
         self.relayout();
-        self.reveal_active();
+        self.auto_reveal_active();
         self.request_redraw();
     }
 

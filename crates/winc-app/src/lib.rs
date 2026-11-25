@@ -295,6 +295,7 @@ pub fn run() {
         app.store.state_path = state_path;
         app.backup.root = backup_root;
         app.adopt_restored(restored);
+        app.reveal_restored();
         if let Some(file) = opened.project.as_deref().or(last_project.as_deref())
             && app.editor.root().is_none()
         {

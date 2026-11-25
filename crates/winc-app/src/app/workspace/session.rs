@@ -302,6 +302,7 @@ impl App {
         self.disk.restoring = None;
         // 恢复期间打开的文件排在恢复的标签之后，仍是当前标签（见 `restore_prepared`）。
         let restored = restore_prepared(&mut self.editor, session.as_ref(), prepared);
+        self.reveal_restored();
         self.adopt_restored(restored);
         if session
             .as_ref()

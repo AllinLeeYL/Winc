@@ -217,6 +217,11 @@ const IDS: &[(Action, &[&str], &[&str])] = &[
         &["workbench.action.files.revealActiveFileInWindows"],
     ),
     (
+        RevealActiveInTree,
+        &["SelectInProjectView"],
+        &["workbench.files.action.showActiveFileInExplorer"],
+    ),
+    (
         OpenInTerminal,
         &["Terminal.OpenInTerminal"],
         &["workbench.action.terminal.openNativeConsole"],

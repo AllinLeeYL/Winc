@@ -81,6 +81,7 @@ pub enum Action {
     CopyActivePath,
     CopyKeyPath,
     RevealActiveFile,
+    RevealActiveInTree,
     OpenInTerminal,
     Quit,
 
@@ -532,6 +533,7 @@ impl Action {
                     t!("cmd-reveal-active-file-in-folder")
                 }
             }
+            RevealActiveInTree => t!("cmd-reveal-active-file-in-tree"),
             Quit => t!("cmd-quit"),
             Undo => t!("cmd-undo"),
             Redo => t!("cmd-redo"),
@@ -817,7 +819,7 @@ impl Action {
             | FocusTab3 | FocusTab4 | FocusTab5 | FocusTab6 | FocusTab7 | FocusTab8 | FocusTab9
             | SwitchTab | SwitchTabBack | CloseFolder | CloseWindow | CopyPath
             | CopyRelativePath | RevealInFinder | CopyActivePath | CopyKeyPath
-            | RevealActiveFile | OpenInTerminal | Quit => Group::File,
+            | RevealActiveFile | RevealActiveInTree | OpenInTerminal | Quit => Group::File,
             NewWindow | OpenRecent | CopyReference | CopyAbsoluteReference => Group::File,
             Undo
             | Redo

@@ -68,6 +68,7 @@ cmd-copy-active-path = 复制当前文件的路径
 cmd-copy-key-path = 复制键路径
 cmd-reveal-active-file-in-finder = 在访达中显示当前文件
 cmd-reveal-active-file-in-folder = 在目录中显示当前文件
+cmd-reveal-active-file-in-tree = 在文件树中定位当前文件
 cmd-open-in-terminal = 在外部终端中打开
 cmd-quit = 退出
 cmd-undo = 撤销
