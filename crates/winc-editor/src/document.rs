@@ -429,6 +429,26 @@ pub const EDIT_LIMIT: u64 = 16 << 20;
 /// 跨过这一距离，起始位置以上 256 行内没有未闭合的块注释或字符串时结果才与从头推算相同。
 const HIGHLIGHT_LOOKBACK: usize = 256;
 
+/// 返回文字 `text` 中各行 `lines`（从 0 起，从小到大）行首的高亮状态，按 `language` 推算；供
+/// 不打开文件、只显示其中几行的预览和搜索结果使用。
+///
+/// 从文件开头推算，结果与打开文件后相同，各行共用推算的结果；推算到某一行要再推算的行数超过
+/// `budget` 时，该行从上方 `HIGHLIGHT_LOOKBACK` 行处推算，与打开大文件时相同。
+pub fn line_highlight_states(
+    text: &ropey::Rope,
+    language: &'static winc_syntax::Language,
+    lines: &[usize],
+    budget: usize,
+) -> Vec<LineState> {
+    let mut highlighter = Highlighter::new(language);
+    (lines.iter())
+        .map(|&line| {
+            (highlighter.state_at(text, line, budget))
+                .unwrap_or_else(|| highlighter.state_near(text, line, HIGHLIGHT_LOOKBACK))
+        })
+        .collect()
+}
+
 /// 粘滞滚动每帧最多向后推算的高亮行数（行，4000）。
 ///
 /// 与编辑区绘制时的每帧预算取同一个值：推算不完时本次结果不缓存，下一帧重新计算。该值取自调参，

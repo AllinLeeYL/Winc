@@ -864,12 +864,16 @@ impl App {
 
     /// 让全局搜索只搜索 `path` 所在的目录（`path` 是文件时取该文件所在的目录）。
     ///
-    /// 把「包含」填成 `./相对路径`，并展开过滤条件。
+    /// 把「包含」填成 `./相对路径`，并展开过滤条件。Windows 上路径中的 `\` 换成 `/`：规则按 glob
+    /// 解析，各系统上填入的写法相同。
     pub(in crate::app) fn find_in_folder(&mut self, path: &Path) {
         let dir = self.folder_of(path);
         let include = self
             .relative_path(&dir)
-            .map(|relative| format!("./{relative}"))
+            .map(|relative| match cfg!(windows) {
+                true => format!("./{}", relative.replace('\\', "/")),
+                false => format!("./{relative}"),
+            })
             .unwrap_or_default();
 
         if include != self.panels.global.include.text() {
