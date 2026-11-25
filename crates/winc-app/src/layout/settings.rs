@@ -92,6 +92,8 @@ pub enum Setting {
     VimKey(char),
     /// 自动换行。
     WordWrap,
+    /// CSV、TSV 按列对齐显示。
+    AlignColumns,
     /// 超长行显示全部内容（`wholeLines`）。
     WholeLines,
     /// 编辑区右侧的缩略图。
@@ -317,6 +319,7 @@ impl Setting {
             S::EditorFont | S::EditorSize | S::TabWidth | S::LineNumbers | S::WordWrap => {
                 SettingsPage::Editor
             }
+            S::AlignColumns => SettingsPage::Editor,
             S::Minimap | S::StickyScroll | S::RenderWhitespace | S::WholeLines => {
                 SettingsPage::Editor
             }
@@ -395,6 +398,7 @@ impl Setting {
             S::StickyScroll => "editor.stickyScroll",
             S::SmoothCaret => "editor.smoothCaretMovement",
             S::WordWrap => "editor.wordWrap",
+            S::AlignColumns => "editor.alignColumns",
             S::WholeLines => "editor.wholeLines",
             S::Minimap => "editor.minimap",
             S::Outline => "editor.outline",
@@ -506,6 +510,7 @@ impl Setting {
             Setting::VimRelativeNumber => t!("settings-vim-relative-number"),
             Setting::VimYankHighlight => t!("settings-vim-yank-highlight"),
             Setting::WordWrap => t!("settings-word-wrap"),
+            Setting::AlignColumns => t!("settings-align-columns"),
             Setting::WholeLines => t!("settings-whole-lines"),
             Setting::Minimap => t!("settings-minimap"),
             Setting::LineNumbers => t!("settings-line-numbers"),
@@ -627,6 +632,7 @@ impl Setting {
             Setting::VimRelativeNumber => Some(t!("settings-vim-relative-number-desc")),
             Setting::VimYankHighlight => Some(t!("settings-vim-yank-highlight-desc")),
             Setting::WordWrap => Some(t!("settings-word-wrap-desc")),
+            Setting::AlignColumns => Some(t!("settings-align-columns-desc")),
             Setting::WholeLines => Some(t!("settings-whole-lines-desc")),
             Setting::Outline => Some(t!("settings-outline-desc")),
             Setting::CompactFolders => Some(t!("settings-compact-folders-desc")),
@@ -728,6 +734,7 @@ impl Setting {
             | Setting::VimRelativeNumber
             | Setting::VimYankHighlight
             | Setting::WordWrap
+            | Setting::AlignColumns
             | Setting::WholeLines
             | Setting::Minimap
             | Setting::Outline
