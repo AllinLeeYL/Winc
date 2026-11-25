@@ -51,14 +51,13 @@ body:
     attributes:
       label: Version and system information
       description: >-
-        In winc, open Settings → About and click Copy, then paste the result here. If you cannot
-        open winc, enter the version, system version, and architecture manually. On Linux, also
-        include the desktop environment and whether it uses Wayland or X11. For SSH remote or WSL
-        problems, also name the system of the remote host or the distribution.
+        In winc, open Settings → About and click the version number to copy this information,
+        then paste it here. If winc cannot start, enter the version (`winc --version`), the system
+        version and, on Linux, the desktop environment and whether it uses Wayland or X11. For SSH
+        remote or WSL problems, also name the system of the remote host or the distribution.
       placeholder: |
-        Winc Version: 0.1.970
-        Operating System: macOS 15.1
-        App Architecture: aarch64
+        Winc 0.1.970 (arm64)
+        macOS 15.1 (24B83)
     validations:
       required: true
   - type: dropdown

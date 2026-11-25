@@ -1,61 +1,73 @@
-//! 运行信息的采集与格式化。
+//! 版本信息：Winc 的版本和架构、操作系统的名称和版本，Linux 上还有桌面环境和显示协议。
+//!
+//! 点击「关于」页的版本号时复制，供用户粘贴到问题反馈中。内容固定用英文，不随界面语言变化：
+//! 维护者按同一种格式阅读。各平台的系统版本都取自系统接口或固定的小文件，不启动外部进程。
 
-/// 当前 Winc 进程的运行信息。
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RuntimeInfo {
-    /// Winc 的真实版本号。
-    pub winc_version: &'static str,
-    /// 操作系统版本；系统接口不可用时为 `None`。
-    pub os_version: Option<String>,
-    /// 当前程序的目标架构。
-    pub architecture: &'static str,
-}
-
-/// 采集当前 Winc 进程的运行信息。
-pub fn collect() -> RuntimeInfo {
-    RuntimeInfo {
-        winc_version: winc_version::VERSION,
-        os_version: os_version(),
-        architecture: std::env::consts::ARCH,
+/// 返回复制到剪贴板的版本信息，每项一行，例如：
+///
+/// ```text
+/// Winc 0.1.970 (arm64)
+/// macOS 15.1
+/// ```
+///
+/// `display` 是窗口所用的显示协议（`Wayland`、`X11`），只在 Linux 上写出；系统版本读取失败时写
+/// `unknown`。读取一个系统接口或系统自带的小文件，耗时不随外部规模增长，可以在界面线程上调用。
+pub fn report(display: Option<&str>) -> String {
+    let system = os_version().unwrap_or_else(|| format!("{} unknown", std::env::consts::OS));
+    let desktop = desktop(
+        std::env::var("XDG_CURRENT_DESKTOP").ok().as_deref(),
+        display,
+    );
+    let mut report = format!("Winc {}\n{system}", crate::layout::version_label());
+    if let Some(desktop) = desktop.filter(|_| cfg!(target_os = "linux")) {
+        report.push_str(&format!(" ({desktop})"));
     }
+    report
 }
 
-/// 按当前界面语言格式化运行信息，供用户粘贴到问题反馈中。
-pub fn report() -> String {
-    let info = collect();
-    let os = info
-        .os_version
-        .as_deref()
-        .unwrap_or(winc_i18n::t!("settings-system-info-unknown"));
-    format!(
-        "{}: {}\n{}: {}\n{}: {}",
-        winc_i18n::t!("settings-system-info-version"),
-        info.winc_version,
-        winc_i18n::t!("settings-system-info-os"),
-        os,
-        winc_i18n::t!("settings-system-info-architecture"),
-        info.architecture,
-    )
+/// 返回桌面环境与显示协议的说明，例如「GNOME, Wayland」；两者都不知道时返回 `None`。
+///
+/// `current` 是环境变量 `XDG_CURRENT_DESKTOP` 的值，可以列出几项（如 `ubuntu:GNOME`），按
+/// freedesktop.org 的约定由具体到一般排列，取最后一项。
+fn desktop(current: Option<&str>, display: Option<&str>) -> Option<String> {
+    let name = current
+        .and_then(|value| value.rsplit(':').find(|part| !part.is_empty()))
+        .map(str::trim);
+    match (name, display) {
+        (Some(name), Some(display)) => Some(format!("{name}, {display}")),
+        (Some(name), None) => Some(name.to_owned()),
+        (None, Some(display)) => Some(display.to_owned()),
+        (None, None) => None,
+    }
 }
 
 #[cfg(target_os = "macos")]
 fn os_version() -> Option<String> {
-    sysctl_string("kern.osproductversion").map(|version| format!("macOS {version}"))
+    crate::macos::os_version().map(|version| format!("macOS {version}"))
 }
 
+/// 读取 `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion` 中的版本，命名规则见
+/// [`windows_name`]。注册表中的值不受程序兼容模式的影响。
 #[cfg(windows)]
 fn os_version() -> Option<String> {
-    windows_version()
+    let key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
+    let build: u32 = registry::string(key, "CurrentBuildNumber")?.parse().ok()?;
+    let release = registry::string(key, "DisplayVersion");
+    let update = registry::dword(key, "UBR");
+    Some(windows_name(build, release.as_deref(), update))
 }
 
 #[cfg(target_os = "linux")]
 fn os_version() -> Option<String> {
-    linux_distribution().or_else(|| unix_kernel_version("Linux kernel"))
+    let text = std::fs::read_to_string("/etc/os-release")
+        .or_else(|_| std::fs::read_to_string("/usr/lib/os-release"))
+        .ok();
+    text.as_deref().and_then(os_release_name).or_else(kernel)
 }
 
 #[cfg(all(unix, not(any(target_os = "macos", target_os = "linux"))))]
 fn os_version() -> Option<String> {
-    unix_kernel_version(&format!("{} kernel", std::env::consts::OS))
+    kernel()
 }
 
 #[cfg(not(any(unix, windows)))]
@@ -63,157 +75,87 @@ fn os_version() -> Option<String> {
     None
 }
 
-#[cfg(target_os = "macos")]
-#[allow(unsafe_code)] // sysctlbyname 是 macOS 获取系统版本的系统接口。
-fn sysctl_string(name: &str) -> Option<String> {
-    use std::ffi::CString;
-
-    let name = CString::new(name).ok()?;
-    let mut size = 0usize;
-    // SAFETY: `name` 是以 NUL 结尾的有效 C 字符串；其余指针为空，仅查询长度。
-    if unsafe {
-        libc::sysctlbyname(
-            name.as_ptr(),
-            std::ptr::null_mut(),
-            &mut size,
-            std::ptr::null_mut(),
-            0,
-        )
-    } != 0
-        || size == 0
-    {
-        return None;
-    }
-    let mut bytes = vec![0u8; size];
-    // SAFETY: `bytes` 有 `size` 字节；参数与上面的长度查询相同。
-    if unsafe {
-        libc::sysctlbyname(
-            name.as_ptr(),
-            bytes.as_mut_ptr().cast(),
-            &mut size,
-            std::ptr::null_mut(),
-            0,
-        )
-    } != 0
-    {
-        return None;
-    }
-    bytes.truncate(size);
-    if bytes.last() == Some(&0) {
-        bytes.pop();
-    }
-    String::from_utf8(bytes)
-        .ok()
-        .filter(|value| !value.is_empty())
-}
-
-#[cfg(windows)]
-#[allow(unsafe_code)] // RtlGetVersion 是 Windows 获取真实版本（含 build）的系统接口。
-fn windows_version() -> Option<String> {
-    #[repr(C)]
-    struct OsVersionInfoExW {
-        size: u32,
-        major: u32,
-        minor: u32,
-        build: u32,
-        platform: u32,
-        service_pack: [u16; 128],
-        service_pack_major: u16,
-        service_pack_minor: u16,
-        suite_mask: u16,
-        product_type: u8,
-        reserved: u8,
-    }
-
-    #[link(name = "ntdll")]
-    unsafe extern "system" {
-        fn RtlGetVersion(info: *mut OsVersionInfoExW) -> i32;
-    }
-
-    let mut info = OsVersionInfoExW {
-        size: std::mem::size_of::<OsVersionInfoExW>() as u32,
-        major: 0,
-        minor: 0,
-        build: 0,
-        platform: 0,
-        service_pack: [0; 128],
-        service_pack_major: 0,
-        service_pack_minor: 0,
-        suite_mask: 0,
-        product_type: 0,
-        reserved: 0,
-    };
-    // SAFETY: `info` has the documented OSVERSIONINFOEX layout and remains valid for the call.
-    let status = unsafe { RtlGetVersion(&mut info) };
-    if status < 0 {
-        None
+/// 返回 Windows 的名称：版本号 `build` 不小于 22000 时为 Windows 11，否则为 Windows 10，其后是
+/// 发布版本 `release`（如 `23H2`）和 `build.update`。
+///
+/// 注册表中的 `ProductName` 在 Windows 11 上仍写 Windows 10，因此按版本号区分：Windows 11 的第一个
+/// 正式版本号是 22000。
+#[cfg_attr(not(any(windows, test)), allow(dead_code))]
+fn windows_name(build: u32, release: Option<&str>, update: Option<u32>) -> String {
+    let name = if build >= 22000 {
+        "Windows 11"
     } else {
-        Some(format!(
-            "Windows {}.{}.{}",
-            info.major, info.minor, info.build
-        ))
-    }
+        "Windows 10"
+    };
+    let release = release.map(|r| format!(" {r}")).unwrap_or_default();
+    let update = update.map(|u| format!(".{u}")).unwrap_or_default();
+    format!("{name}{release} (build {build}{update})")
 }
 
-#[cfg(target_os = "linux")]
-fn linux_distribution() -> Option<String> {
-    let text = std::fs::read_to_string("/etc/os-release")
-        .or_else(|_| std::fs::read_to_string("/usr/lib/os-release"))
-        .ok()?;
-    let pretty = os_release_value(&text, "PRETTY_NAME");
-    let name = os_release_value(&text, "NAME");
-    let version = os_release_value(&text, "VERSION_ID");
-    pretty.or_else(|| match (name, version) {
-        (Some(name), Some(version)) => Some(format!("{name} {version}")),
-        (Some(name), None) => Some(name),
-        _ => None,
+/// 返回 os-release 文件内容 `text` 中的系统名称：`PRETTY_NAME`，没有时为 `NAME` 和 `VERSION_ID`。
+///
+/// 值的写法依据 os-release(5)：可以用单引号或双引号括起，双引号内的 `\` 转义 `$`、`` ` ``、`"`、
+/// `\`；以 `#` 开头的行是注释。
+#[cfg_attr(not(any(target_os = "linux", test)), allow(dead_code))]
+fn os_release_name(text: &str) -> Option<String> {
+    let value = |key: &str| {
+        let line = text.lines().map(str::trim).find_map(|line| {
+            let rest = line.strip_prefix(key)?.strip_prefix('=')?;
+            (!line.starts_with('#')).then_some(rest)
+        })?;
+        unquote(line).filter(|value| !value.is_empty())
+    };
+    value("PRETTY_NAME").or_else(|| match (value("NAME")?, value("VERSION_ID")) {
+        (name, Some(version)) => Some(format!("{name} {version}")),
+        (name, None) => Some(name),
     })
 }
 
-#[cfg(target_os = "linux")]
-fn os_release_value(text: &str, key: &str) -> Option<String> {
-    let value = text.lines().find_map(|line| {
-        line.strip_prefix(key)
-            .and_then(|rest| rest.strip_prefix('='))
-    })?;
-    let value = value.trim();
-    let value = if let Some(value) = value.strip_prefix('"') {
-        let value = value.strip_suffix('"')?;
-        let mut result = String::new();
-        let mut chars = value.chars();
-        while let Some(ch) = chars.next() {
-            if ch == '\\' {
-                let next = chars.next()?;
-                if !matches!(next, '$' | '`' | '"' | '\\') {
-                    result.push('\\');
+/// 去掉 os-release 中一个值的引号并处理双引号内的转义；引号不成对时返回 `None`。
+#[cfg_attr(not(any(target_os = "linux", test)), allow(dead_code))]
+fn unquote(value: &str) -> Option<String> {
+    if let Some(inner) = value.strip_prefix('"') {
+        let inner = inner.strip_suffix('"')?;
+        let mut out = String::with_capacity(inner.len());
+        let mut chars = inner.chars();
+        while let Some(c) = chars.next() {
+            match (c, chars.clone().next()) {
+                ('\\', Some(next @ ('$' | '`' | '"' | '\\'))) => {
+                    out.push(next);
+                    chars.next();
                 }
-                result.push(next);
-            } else {
-                result.push(ch);
+                _ => out.push(c),
             }
         }
-        result
-    } else if let Some(value) = value.strip_prefix('\'') {
-        value.strip_suffix('\'')?.to_owned()
-    } else {
-        value.to_owned()
-    };
-    (!value.is_empty()).then_some(value)
+        return Some(out);
+    }
+    if let Some(inner) = value.strip_prefix('\'') {
+        return inner.strip_suffix('\'').map(str::to_owned);
+    }
+    Some(value.to_owned())
 }
 
+/// 返回内核的名称和版本，例如「Linux 6.8.0」；读取失败时返回 `None`。
 #[cfg(all(unix, not(target_os = "macos")))]
-#[allow(unsafe_code)] // uname 是 Unix 获取内核版本的系统接口。
-fn unix_kernel_version(label: &str) -> Option<String> {
+#[allow(unsafe_code)] // `uname` 只能通过系统接口调用
+fn kernel() -> Option<String> {
     let mut info = std::mem::MaybeUninit::<libc::utsname>::zeroed();
-    // SAFETY: `uname` writes the complete fixed-size structure supplied by the caller.
+    // SAFETY: `info` 是足够大的可写缓冲区，`uname` 成功时写满整个结构体。
     if unsafe { libc::uname(info.as_mut_ptr()) } != 0 {
         return None;
     }
-    // SAFETY: uname succeeded and initialized `info`.
+    // SAFETY: `uname` 已成功，结构体已初始化。
     let info = unsafe { info.assume_init() };
-    // SAFETY: uname strings are NUL-terminated within the fixed-size utsname fields.
-    let release = unsafe { std::ffi::CStr::from_ptr(info.release.as_ptr()) }
-        .to_str()
-        .ok()?;
-    (!release.is_empty()).then(|| format!("{label} {release}"))
+    let text = |field: &[libc::c_char]| {
+        // SAFETY: `uname` 写出的各字段都在定长数组内以 NUL 结尾。
+        let text = unsafe { std::ffi::CStr::from_ptr(field.as_ptr()) };
+        text.to_str().ok().map(str::to_owned)
+    };
+    Some(format!("{} {}", text(&info.sysname)?, text(&info.release)?))
 }
+
+#[cfg(windows)]
+mod registry;
+
+#[cfg(test)]
+mod tests;

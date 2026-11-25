@@ -12,7 +12,7 @@ use std::io;
 use std::path::Path;
 use std::process::Command;
 
-pub mod info;
+pub(crate) mod info;
 
 /// 返回「显示文件所在位置」按钮上的文字（按当前界面语言）。
 ///

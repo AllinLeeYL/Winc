@@ -303,7 +303,7 @@ impl SettingsPage {
             }
             SettingsPage::Keys => Vec::new(),
             SettingsPage::About => vec![
-                plain(vec![S::Version, S::CopySystemInfo]),
+                plain(vec![S::Version]),
                 group(t!("settings-group-updates"), vec![S::Updates]),
                 group(
                     t!("settings-group-links"),
