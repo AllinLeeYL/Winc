@@ -1,8 +1,7 @@
 name: Bug report
 description: Report a reproducible defect in winc.
 title: "[Bug]: "
-labels:
-  - bug
+type: Bug
 body:
   - type: markdown
     attributes:
@@ -36,10 +35,14 @@ body:
     id: platform
     attributes:
       label: Platform
-      description: The operating system where the problem occurs.
+      description: >-
+        The system and processor where the problem occurs. The issue is labeled with it. On
+        macOS, Apple menu → About This Mac shows Apple silicon or Intel.
       options:
-        - macOS
-        - Linux
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Linux (x86_64)
+        - Linux (ARM64)
         - Windows
     validations:
       required: true
@@ -49,10 +52,11 @@ body:
       label: Version and system information
       description: >-
         In winc, open Settings → About and click Copy, then paste the result here. If you cannot
-        open winc, enter the version, system version, and architecture manually. For SSH remote or
-        WSL problems, also name the system of the remote host or the distribution.
+        open winc, enter the version, system version, and architecture manually. On Linux, also
+        include the desktop environment and whether it uses Wayland or X11. For SSH remote or WSL
+        problems, also name the system of the remote host or the distribution.
       placeholder: |
-        Winc Version: 0.1.688
+        Winc Version: 0.1.970
         Operating System: macOS 15.1
         App Architecture: aarch64
     validations:
@@ -66,10 +70,13 @@ body:
         - macOS disk image
         - Linux AppImage
         - Linux deb
+        - Linux rpm
         - Arch repository
         - Windows installer (NSIS)
         - Windows installer (MSI)
         - Windows portable ZIP
+        - winget
+        - Scoop
         - Built from source
     validations:
       required: false
