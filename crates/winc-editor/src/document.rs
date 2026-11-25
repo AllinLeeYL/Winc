@@ -5,6 +5,7 @@
 //! 换行风格、BOM）和检查外部修改。
 
 use std::borrow::Cow;
+use std::cell::Cell;
 use std::io::{self, BufReader, Read, Write};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
@@ -529,6 +530,10 @@ pub struct Document {
     pub(crate) marks: Marks,
     /// 其他窗格里这个文档的视图状态；文本变化时随之移动。
     pub(crate) parked: Parked,
+    /// CSV、TSV 是否按列对齐显示（见 [`Editor::set_align_columns`](crate::Editor)）。
+    align_columns: bool,
+    /// 表格的分隔符（[`Document::delimiter`]），按（版本、语言）缓存。
+    delimiter_memo: Cell<Option<(u64, &'static str, Option<char>)>>,
     /// CSV、TSV 按列对齐时每一列的起始位置，按（版本、Tab 宽度）缓存。
     columns: Option<ColumnsCache>,
     /// 上一次测量列宽时的文字和各列宽度；文字变化时只重新测量改动的行。
@@ -639,6 +644,8 @@ impl Document {
             bookmarks: Bookmarks::default(),
             marks: Marks::default(),
             parked: Parked::default(),
+            align_columns: true,
+            delimiter_memo: Cell::new(None),
             columns: None,
             column_widths: None,
             fold_cache: None,
@@ -894,9 +901,38 @@ impl Document {
         Some(Columns::measure(separator, rope.chunks(), tab_width))
     }
 
-    /// 按列对齐时的分隔符；不是表格、是大文件或超过 `ALIGN_MAX` 时为 `None`。
+    /// 按列对齐时的分隔符（[`Document::delimiter`]）；关闭了按列对齐、不是表格、是大文件或超过
+    /// `ALIGN_MAX` 时为 `None`。
     fn column_separator(&self) -> Option<char> {
-        let separator = match self.highlighter.language().id {
+        let Content::Rope(rope) = &self.text else {
+            return None;
+        };
+        if !self.align_columns || rope.len_bytes() > ALIGN_MAX {
+            return None;
+        }
+        self.delimiter()
+    }
+
+    /// 返回表格（CSV、TSV）分列的字符：TSV 为制表符，CSV 为逗号，第一行中分号多于逗号时为分号。
+    /// 不是表格或是大文件时返回 `None`。
+    ///
+    /// 按列着色和按列对齐都按该字符分列。绘制时每一行都要查询，结果按（版本、语言）缓存。
+    pub fn delimiter(&self) -> Option<char> {
+        let language = self.highlighter.language().id;
+        if let Some((revision, id, delimiter)) = self.delimiter_memo.get()
+            && revision == self.revision
+            && id == language
+        {
+            return delimiter;
+        }
+        let delimiter = self.find_delimiter(language);
+        (self.delimiter_memo).set(Some((self.revision, language, delimiter)));
+        delimiter
+    }
+
+    /// 按语言 `language` 和第一行的内容确定表格的分隔符，规则见 [`Document::delimiter`]。
+    fn find_delimiter(&self, language: &str) -> Option<char> {
+        let separator = match language {
             "csv" => ',',
             "tsv" => '\t',
             _ => return None,
@@ -904,18 +940,27 @@ impl Document {
         let Content::Rope(rope) = &self.text else {
             return None;
         };
-        if rope.len_bytes() > ALIGN_MAX {
-            return None;
-        }
-        // 第一行中分号多于逗号时，CSV 按分号分列。
         let first = rope.line(0);
         let count = |c: char| first.chars().filter(|&x| x == c).count();
-        let separator = if separator == ',' && count(';') > count(',') {
+        Some(if separator == ',' && count(';') > count(',') {
             ';'
         } else {
             separator
-        };
-        Some(separator)
+        })
+    }
+
+    /// CSV、TSV 是否按列对齐显示（见 [`Document::set_align_columns`]）。
+    pub(crate) fn aligns_columns(&self) -> bool {
+        self.align_columns
+    }
+
+    /// 设置 CSV、TSV 是否按列对齐显示；关闭时按原文排布，仍按列着色，可以自动换行。
+    pub(crate) fn set_align_columns(&mut self, align: bool) {
+        if self.align_columns != align {
+            self.align_columns = align;
+            self.columns = None;
+            self.column_widths = None;
+        }
     }
 
     /// 创建对应文件已不在磁盘上的文档：内容为空，未保存的内容只能从备份恢复
