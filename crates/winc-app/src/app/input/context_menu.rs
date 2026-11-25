@@ -530,6 +530,10 @@ pub enum MenuCommand {
     MoveTerminalRight,
     /// 终端：向下分栏（面板在右侧时）。
     MoveTerminalDown,
+    /// 把终端标签移到编辑区。
+    MoveTerminalToEditor,
+    /// 把编辑区里的终端标签移回终端面板。
+    MoveTerminalToPanel,
     /// 终端标签：改名字。
     RenameTerminal,
     CloseTerminal,
@@ -736,6 +740,8 @@ impl MenuCommand {
             MenuCommand::SplitTerminal => t!("cmd-split-terminal"),
             MenuCommand::MoveTerminalRight => t!("menu-terminal-move-right"),
             MenuCommand::MoveTerminalDown => t!("menu-terminal-move-down"),
+            MenuCommand::MoveTerminalToEditor => t!("terminal-move-to-editor"),
+            MenuCommand::MoveTerminalToPanel => t!("terminal-move-to-panel"),
             MenuCommand::RenameTerminal => t!("cmd-rename-file"),
             MenuCommand::CloseTerminal => t!("menu-terminal-close"),
             MenuCommand::CloseOtherTerminals => t!("cmd-close-other-tabs"),
@@ -923,6 +929,8 @@ impl MenuCommand {
             MenuCommand::MoveTerminalRight | MenuCommand::MoveTerminalDown => {
                 Action::MoveTerminalToGroup
             }
+            MenuCommand::MoveTerminalToEditor => Action::MoveTerminalToEditor,
+            MenuCommand::MoveTerminalToPanel => Action::MoveTerminalToPanel,
             MenuCommand::RenameTerminal => Action::RenameTerminal,
             MenuCommand::CloseTerminal => Action::CloseTerminal,
             MenuCommand::GitRevertHunk => Action::GitRevertChange,
@@ -1101,8 +1109,8 @@ pub enum MenuTarget {
     LogFile(usize, PathBuf),
     /// 终端标签栏上的一个标签（编号）。
     TerminalTab(u16),
-    /// 终端面板里正在看的标签，以及右键点着的命令块（编号；没点在运行过的块上时为 `None`）。
-    Terminal(Option<u32>),
+    /// 右键点着的终端编号和命令块编号，菜单打开后不随当前焦点改变。
+    Terminal(u16, Option<u32>),
     /// 全局搜索结果里的一行：文件的路径和该文件中第几处匹配（`None` 是文件行），和
     /// `GlobalSearch::selected` 的记法相同。
     SearchResult(PathBuf, Option<usize>),

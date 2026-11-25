@@ -314,7 +314,7 @@ impl Editor {
     /// 用于输出在标签开着的时候有了新内容：标签已经关闭时不再打开。
     pub fn refresh_output(&mut self, title: &str, more: Option<&str>, text: &str) -> bool {
         let found = (self.documents.iter_mut())
-            .find(|d| d.path.is_none() && d.title.as_deref() == Some(title));
+            .find(|d| !d.terminal && d.path.is_none() && d.title.as_deref() == Some(title));
         let Some(slot) = found else {
             return false;
         };
@@ -333,6 +333,14 @@ impl Editor {
     /// 已存在标题相同且没有对应文件的标签时，替换其内容而不新开标签。返回标签序号（从 0 起）。
     pub fn show_reading(&mut self, title: &str, reading: Reading) -> usize {
         self.show_readonly(title, |id| Document::reading(id, title, reading))
+    }
+
+    /// 新建终端标签并切换过去，返回标签序号；同名终端仍各占一个标签。
+    pub fn new_terminal(&mut self, title: &str) -> usize {
+        let id = self.allocate_id();
+        let index = self.insert_tab(Document::terminal(id, title));
+        self.active = Some(index);
+        index
     }
 
     /// 把阅读标签 `id` 的内容换成 `reading`，标题不变，不切换标签；返回是否有这个标签。
@@ -419,7 +427,7 @@ impl Editor {
         let existing = self
             .documents
             .iter()
-            .position(|d| d.path.is_none() && d.title.as_deref() == Some(title));
+            .position(|d| !d.terminal && d.path.is_none() && d.title.as_deref() == Some(title));
         let index = match existing {
             Some(index) => {
                 let slot = &mut self.documents[index];

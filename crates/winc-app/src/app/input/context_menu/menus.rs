@@ -606,6 +606,7 @@ pub fn terminal_menu(
         Item(NewTerminal, true),
         Item(SplitTerminal, running),
         Item(move_group_command(group.0), group.1),
+        Item(MoveTerminalToEditor, true),
         Item(CloseTerminal, true),
     ]);
     menu

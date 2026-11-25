@@ -478,7 +478,7 @@ impl App {
         }
         let panes = self.session_panes(&slots);
 
-        let terminal = self.terminal_session();
+        let terminal = self.terminal_session_with_tabs(&slots);
         let run = self.run.selected.clone();
         let mut folders = self.extra_folders();
         let workspace = self.editor.workspace.as_ref();

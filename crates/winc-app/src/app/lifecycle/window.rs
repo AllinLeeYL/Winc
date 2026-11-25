@@ -298,6 +298,22 @@ impl App {
     ///
     /// 窗口尺寸、面板宽度、标签或预览状态变化后调用；面板跟着焦点关闭也在这一步完成。
     pub(crate) fn relayout(&mut self) {
+        if !self.terminal.borrowed() {
+            if self.focus == Focus::Editor {
+                if !self.activate_editor_terminal() {
+                    self.leave_editor_terminal();
+                }
+            } else if self.focus.in_terminal()
+                && self
+                    .terminal
+                    .editor_document()
+                    .is_some_and(|id| self.editor.active().is_none_or(|doc| doc.id != id))
+            {
+                self.focus = Focus::Editor;
+                self.leave_editor_terminal();
+            }
+            self.sync_terminal_editor_visibility();
+        }
         self.track_recent_tabs();
         self.note_terminal_tab_position();
         self.sync_project_offer();
@@ -398,11 +414,29 @@ impl App {
 
     /// 在编辑区里放置随当前标签变化的部分：标签栏右端的按钮、分栏预览、合并的两侧、缩略图。
     pub(in crate::app) fn place_editor_parts(&mut self) {
+        self.place_terminal_return();
         self.place_preview_button();
         self.place_browser_button();
         self.place_split();
         self.place_merge_panes();
         self.place_minimap();
+    }
+
+    /// 编辑器中的终端标签右端保留移回面板的按钮，内容区不再有第二个标签栏。
+    fn place_terminal_return(&mut self) {
+        let l = &mut self.layout;
+        l.terminal_return = Rect::default();
+        if !self.editor.active().is_some_and(|doc| doc.terminal) || l.tabs.w < BUTTON * 3.0 {
+            return;
+        }
+        let bar = l.tabs;
+        l.terminal_return = Rect::new(
+            bar.right() - BUTTON,
+            bar.y + (bar.h - BUTTON) / 2.0,
+            BUTTON,
+            BUTTON,
+        );
+        l.tabs.w -= BUTTON + TAB_GAP;
     }
 
     /// 当前文件能预览（SVG）时，在标签栏右端留出「源代码 / 分栏 / 预览」三个按钮，标签栏

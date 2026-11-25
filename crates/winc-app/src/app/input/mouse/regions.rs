@@ -377,11 +377,23 @@ impl App {
             .as_ref()
             .map(|f| (Focus::Prompt, true, f));
         let rename = self.terminal.rename.as_ref().map(|(id, field)| {
-            let shown = self.hits.terminal.iter().any(|(rect, hit)| {
-                matches!(hit, crate::app::terminal::HeaderHit::Tab(index)
-                    if rect.contains(x, y)
-                        && self.terminal.tabs.get(*index).is_some_and(|tab| tab.id == *id))
-            });
+            let shown = if let Some(document) = self.terminal.editor_document() {
+                self.editor.active().is_some_and(|doc| doc.id == document)
+                    && self.terminal.tab().is_some_and(|tab| tab.id == *id)
+                    && self.hits.tabs.iter().any(|hit| {
+                        self.editor
+                            .documents
+                            .get(hit.index)
+                            .is_some_and(|doc| doc.id == document)
+                            && hit.tab.contains(x, y)
+                    })
+            } else {
+                self.hits.terminal.iter().any(|(rect, hit)| {
+                    matches!(hit, crate::app::terminal::HeaderHit::Tab(index)
+                        if rect.contains(x, y)
+                            && self.terminal.tabs.get(*index).is_some_and(|tab| tab.id == *id))
+                })
+            };
             (Focus::TerminalRename, shown, field)
         });
         let terminal_find =

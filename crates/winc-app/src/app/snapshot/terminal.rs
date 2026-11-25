@@ -1225,7 +1225,7 @@ fn the_shell_menu_starts_the_chosen_shell_and_remembers_it() {
     );
 
     // 现场记下：默认 shell 的是空的。
-    let session = app.terminal_session().unwrap();
+    let session = app.terminal_session_with_tabs(&[]).unwrap();
     assert_eq!(session.shells, ["", "/bin/bash"]);
 
     // 异常退出的标签留着，重新启动后还是这个 shell（正常退出的标签直接关闭）。

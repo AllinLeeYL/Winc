@@ -123,6 +123,9 @@ impl App {
         if self.browser_page().is_some() {
             controls.push(l.browser);
         }
+        if self.editor.active().is_some_and(|doc| doc.terminal) {
+            controls.push(l.terminal_return);
+        }
         controls
     }
 
@@ -457,6 +460,17 @@ impl App {
         if l.browser.contains(x, y) && self.browser_page().is_some() {
             return Target::Browser;
         }
+        if l.terminal_return.contains(x, y) && self.editor.active().is_some_and(|doc| doc.terminal)
+        {
+            return Target::TerminalHeader(crate::app::terminal::HeaderHit::Panel);
+        }
+        if self.field_at(x, y) == Some(Focus::TerminalRename)
+            && self.editor.active().is_some_and(|doc| doc.terminal)
+        {
+            return Target::TerminalHeader(crate::app::terminal::HeaderHit::Tab(
+                self.terminal.active,
+            ));
+        }
         if let Some((index, on_close)) = self.tab_at(x, y) {
             return Target::Tab(index, on_close);
         }
@@ -516,7 +530,7 @@ impl App {
         if let Some(part) = self.docked_part_at(x, y) {
             return Target::SearchDock(part);
         }
-        if l.terminal.contains(x, y) {
+        if self.terminal_contains(x, y) {
             if self
                 .terminal_tab_list()
                 .is_some_and(|list| list.contains(x, y))
